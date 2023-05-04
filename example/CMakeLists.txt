@@ -1,0 +1,8 @@
+# add_subdirectory(${PROJECT_SOURCE_DIR}/example/test_select)
+# add_subdirectory(${PROJECT_SOURCE_DIR}/example/test_channel)
+# add_subdirectory(${PROJECT_SOURCE_DIR}/example/test_echo_svr)
+# add_subdirectory(${PROJECT_SOURCE_DIR}/example/test_echo_cli)
+# add_subdirectory(${PROJECT_SOURCE_DIR}/example/test_http_svr)
+# add_subdirectory(${PROJECT_SOURCE_DIR}/example/test_generator)
+# add_subdirectory(${PROJECT_SOURCE_DIR}/example/test_origin)
+# add_subdirectory(${PROJECT_SOURCE_DIR}/example/test_await)
