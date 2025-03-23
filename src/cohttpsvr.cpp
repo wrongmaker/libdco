@@ -5,16 +5,16 @@
 
 using namespace dco;
 
-void cohttpsvr::go_session(std::shared_ptr<tcp::socket> socket,
-                           std::shared_ptr<http_dispachter> dispatcher) {
+void cohttpsvr::go_session(std::shared_ptr<tcp::socket> socket)
+{
   // create coroutine task and launch
   std::function<void()> task =
-      std::bind(&cohttpsvr::do_session, this, socket, dispatcher);
+      std::bind(&cohttpsvr::do_session, this, socket);
   dco_go task;
 }
 
-void cohttpsvr::do_session(std::shared_ptr<tcp::socket> socket,
-                           std::shared_ptr<http_dispachter> dispatcher) {
+void cohttpsvr::do_session(std::shared_ptr<tcp::socket> socket)
+{
   bool close = false;
   beast::error_code ec;
 
@@ -24,25 +24,30 @@ void cohttpsvr::do_session(std::shared_ptr<tcp::socket> socket,
   // This lambda is used to send messages
   cohttp_response lambda{*socket, close, ec};
 
-  for (;;) {
+  for (;;)
+  {
     // Read a request
     http::request<http::string_body> req;
     http::read(*socket, buffer, req, ec);
     if (ec == http::error::end_of_stream)
       break;
-    if (ec) {
+    if (ec)
+    {
       dco_error("do_session recv fail ec:{}", ec.what());
       return;
     }
 
     // Get target session call
-    do_dispatcher(req, dispatcher, lambda);
+    std::shared_ptr<http_dispachter> dispatcher = get_dispacher(req.method());
+    do_dispatcher(req, dispatcher, default_session_dispatcher_, lambda);
 
-    if (ec) {
+    if (ec)
+    {
       dco_error("do_session resp fail ec:{}", ec.what());
       return;
     }
-    if (close) {
+    if (close)
+    {
       // This means we should close the connection, usually because
       // the response indicated the "Connection: close" semantic.
       break;
@@ -55,18 +60,18 @@ void cohttpsvr::do_session(std::shared_ptr<tcp::socket> socket,
   // At this point the connection is closed gracefully
 }
 
-void cohttpsvr_ssl::go_session(std::shared_ptr<tcp::socket> socket,
-                               std::shared_ptr<http_dispachter> dispatcher) {
+void cohttpsvr_ssl::go_session(std::shared_ptr<tcp::socket> socket)
+{
   BOOST_ASSERT(ssl_ctx_ != nullptr);
   // create coroutine task and launch
   std::function<void()> task =
-      std::bind(&cohttpsvr_ssl::do_session, this, socket, dispatcher, ssl_ctx_);
+      std::bind(&cohttpsvr_ssl::do_session, this, socket, ssl_ctx_);
   dco_go task;
 }
 
 void cohttpsvr_ssl::do_session(std::shared_ptr<tcp::socket> socket,
-                               std::shared_ptr<http_dispachter> dispatcher,
-                               std::shared_ptr<ssl::context> ctx) {
+                               std::shared_ptr<ssl::context> ctx)
+{
   bool close = false;
   beast::error_code ec;
 
@@ -84,25 +89,30 @@ void cohttpsvr_ssl::do_session(std::shared_ptr<tcp::socket> socket,
   // This lambda is used to send messages
   cohttp_response lambda{stream, close, ec};
 
-  for (;;) {
+  for (;;)
+  {
     // Read a request
     http::request<http::string_body> req;
     http::read(stream, buffer, req, ec);
     if (ec == http::error::end_of_stream)
       break;
-    if (ec) {
+    if (ec)
+    {
       dco_error("do_session recv fail ec:{}", ec.what());
       return;
     }
 
     // Get target session call
-    do_dispatcher(req, dispatcher, lambda);
+    std::shared_ptr<http_dispachter> dispatcher = get_dispacher(req.method());
+    do_dispatcher(req, dispatcher, default_session_dispatcher_, lambda);
 
-    if (ec) {
+    if (ec)
+    {
       dco_error("do_session resp fail ec:{}", ec.what());
       return;
     }
-    if (close) {
+    if (close)
+    {
       // This means we should close the connection, usually because
       // the response indicated the "Connection: close" semantic.
       break;
@@ -121,7 +131,8 @@ bool cohttpsvr_ssl::load_certificate(const ssl::context::method &mod,
                                      const ssl::context::options &op,
                                      const std::string &cert,
                                      const std::string &key,
-                                     const std::string &dh) {
+                                     const std::string &dh)
+{
   if (ssl_ctx_ == nullptr)
     ssl_ctx_ = std::make_shared<ssl::context>(mod);
   ssl_ctx_->set_options(op);

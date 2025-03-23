@@ -18,10 +18,7 @@ private:
 
 private:
   coschedule *ptr_sche_;
-#if DCO_MULT_THREAD
-  mutable boost::detail::spinlock mtx_;
-#endif
-  conolist<waitnode> ctx_que_; // 等待队列
+  conolist_mt<waitnode> ctx_que_; // 等待队列
 
 public:
   cocondvariable(const cocondvariable &) = delete;

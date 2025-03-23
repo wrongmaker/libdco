@@ -1,91 +1,64 @@
 #include "libdco/co/cosemaphore.h"
 
-#include <iostream>
+#include "libdco/co/all.h"
+#include "libdco/util/cotools.h"
 
 using namespace dco;
 
-cosemaphore::cosemaphore(coschedule *sche, int def, int max)
-    : flag_(def), max_(max), wait_(sche) {}
+cosemaphore::cosemaphore(coschedule *sche, int def)
+    : ptr_sche_(sche), sem_(def) {}
 
 cosemaphore::~cosemaphore() {}
 
-bool cosemaphore::wait_get(coctx *ctx,
-                           const std::function<void(coctx *)> &call) {
-  if (flag_ <= 0)
-    return false;
-  --flag_;
-  call(ctx);
+bool cosemaphore::wait() {
+  coctx *ctx = ptr_sche_->dco_curr_ctx();
+  BOOST_ASSERT(ctx != nullptr);
+  while (!cotools::atomic_decrement_if_positive(sem_, 0, 1))
+    dco_futex::dco_wait(ptr_sche_, ctx_que_, sem_);
   return true;
 }
 
-bool cosemaphore::post_set() {
-  if (flag_ >= max_)
-    return false;
-  ++flag_;
-  return true;
+void cosemaphore::notify() {
+  // 新增值
+  ++sem_;
+  // 开始唤醒
+  dco_futex::dco_notify(ptr_sche_, ctx_que_);
 }
 
-int cosemaphore::wait(const std::function<void(coctx *)> &call) {
-  int res = 0;
-  {
-#if DCO_MULT_THREAD
-    std::unique_lock<std::mutex> lock(mtx_);
-    res = wait_.wait(lock, [this, &call](coctx *ctx) -> bool {
-      return wait_get(ctx, call);
-    });
-#else
-    res = wait_.wait(
-        [this, &call](coctx *ctx) -> bool { return wait_get(ctx, call); });
-#endif
-  }
-  return res;
+cosemaphore_tm::cosemaphore_tm(coschedule *sche, int def)
+    : sem_(def), ptr_sche_(sche) {}
+
+cosemaphore_tm::~cosemaphore_tm() {}
+
+int cosemaphore_tm::wait() {
+  coctx *ctx = ptr_sche_->dco_curr_ctx();
+  BOOST_ASSERT(ctx != nullptr);
+  waitnode node(ctx);
+  while (!cotools::atomic_decrement_if_positive(sem_, 0, 1))
+    dco_futex::dco_wait(ptr_sche_, ctx_que_, node, sem_);
+  return 1; // 被打断了或者条件为真
 }
 
-int cosemaphore::wait_for(time_t ms, const std::function<void(coctx *)> &call) {
-  int res = 0;
-  {
-#if DCO_MULT_THREAD
-    std::unique_lock<std::mutex> lock(mtx_);
-    res = wait_.wait_for(lock, ms, [this, &call](coctx *ctx) -> bool {
-      return wait_get(ctx, call);
-    });
-#else
-    res = wait_.wait_for(
-        ms, [this, &call](coctx *ctx) -> bool { return wait_get(ctx, call); });
-#endif
-  }
-  return res;
+int cosemaphore_tm::wait_for(time_t ms) {
+  time_t ms_until = cotools::ms2until(ms);
+  return wait_until(ms_until);
 }
 
-int cosemaphore::wait_until(time_t ms_until,
-                            const std::function<void(coctx *)> &call) {
-  int res = 0;
-  {
-#if DCO_MULT_THREAD
-    std::unique_lock<std::mutex> lock(mtx_);
-    res = wait_.wait_until(lock, ms_until, [this, &call](coctx *ctx) -> bool {
-      return wait_get(ctx, call);
-    });
-#else
-    res = wait_.wait_until(ms_until, [this, &call](coctx *ctx) -> bool {
-      return wait_get(ctx, call);
-    });
-#endif
+int cosemaphore_tm::wait_until(time_t ms_until) {
+  coctx *ctx = ptr_sche_->dco_curr_ctx();
+  BOOST_ASSERT(ctx != nullptr);
+  waitnode node(ctx);
+  while (!cotools::atomic_decrement_if_positive(sem_, 0, 1)) {
+    int res =
+        dco_futex::dco_wait_until(ptr_sche_, ms_until, ctx_que_, node, sem_);
+    if (0 == res)
+      return 0;
   }
-  return res;
+  return 1; // 被打断了或者条件为真
 }
 
-int cosemaphore::notify() {
-  bool ret = false;
-  {
-#if DCO_MULT_THREAD
-    std::lock_guard<std::mutex> lock(mtx_);
-    ret = post_set();
-#else
-    ret = post_set();
-#endif
-  }
-  if (ret)
-    return wait_.notify();
-  return -1;
+int cosemaphore_tm::notify() {
+  ++sem_;
+  // 尝试唤醒一个
+  return dco_futex::dco_notify(ptr_sche_, ctx_que_);
 }

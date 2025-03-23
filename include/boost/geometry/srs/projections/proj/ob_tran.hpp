@@ -1,9 +1,11 @@
 // Boost.Geometry - gis-projections (based on PROJ4)
 
 // Copyright (c) 2008-2015 Barend Gehrels, Amsterdam, the Netherlands.
+// Copyright (c) 2023 Adam Wulkiewicz, Lodz, Poland.
 
-// This file was modified by Oracle on 2017-2020.
-// Modifications copyright (c) 2017-2020, Oracle and/or its affiliates.
+// This file was modified by Oracle on 2017-2024.
+// Modifications copyright (c) 2017-2024, Oracle and/or its affiliates.
+// Contributed and/or modified by Visarion Fysikopoulos, on behalf of Oracle.
 // Contributed and/or modified by Adam Wulkiewicz, on behalf of Oracle.
 
 // Use, modification and distribution is subject to the Boost Software License,
@@ -40,19 +42,17 @@
 #ifndef BOOST_GEOMETRY_PROJECTIONS_OB_TRAN_HPP
 #define BOOST_GEOMETRY_PROJECTIONS_OB_TRAN_HPP
 
+#include <memory>
 #include <type_traits>
 
-#include <boost/geometry/util/math.hpp>
-#include <boost/shared_ptr.hpp>
-
 #include <boost/geometry/core/static_assert.hpp>
-
 #include <boost/geometry/srs/projections/impl/aasincos.hpp>
 #include <boost/geometry/srs/projections/impl/base_static.hpp>
 #include <boost/geometry/srs/projections/impl/base_dynamic.hpp>
 #include <boost/geometry/srs/projections/impl/factory_entry.hpp>
 #include <boost/geometry/srs/projections/impl/pj_ell_set.hpp>
 #include <boost/geometry/srs/projections/impl/projects.hpp>
+#include <boost/geometry/util/math.hpp>
 
 namespace boost { namespace geometry
 {
@@ -61,7 +61,7 @@ namespace projections
 {
     #ifndef DOXYGEN_NO_DETAIL
     namespace detail {
-    
+
         // fwd declaration needed below
         template <typename T>
         inline detail::dynamic_wrapper_b<T, projections::parameters<T> >*
@@ -199,9 +199,10 @@ namespace projections
                     link->inv(link->params(), xy_x, xy_y, lp_lon, lp_lat);
                 }
 
-                boost::shared_ptr<dynamic_wrapper_b<T, Parameters> > link;
-                T lamp;
-                T cphip, sphip;
+                std::shared_ptr<dynamic_wrapper_b<T, Parameters> > link;
+                T lamp = 0;
+                T cphip = 0;
+                T sphip = 0;
             };
 
             template <typename StaticParameters, typename T, typename Parameters>
@@ -245,15 +246,16 @@ namespace projections
                 }
 
                 projection_type link;
-                T lamp;
-                T cphip, sphip;
+                T lamp = 0;
+                T cphip = 0;
+                T sphip = 0;
             };
 
             template <typename T, typename Par>
             inline void o_forward(T lp_lon, T lp_lat, T& xy_x, T& xy_y, Par const& proj_parm)
             {
                 T coslam, sinphi, cosphi;
-                
+
                 coslam = cos(lp_lon);
                 sinphi = sin(lp_lat);
                 cosphi = cos(lp_lat);
@@ -326,7 +328,7 @@ namespace projections
                     lamc    = pj_get_param_r<T, srs::spar::o_lon_c>(params, "o_lon_c", srs::dpar::o_lon_c);
                     phic    = pj_get_param_r<T, srs::spar::o_lon_c>(params, "o_lat_c", srs::dpar::o_lat_c);
                     //alpha   = pj_get_param_r(par.params, "o_alpha");
-            
+
                     if (fabs(fabs(phic) - half_pi) <= tolerance)
                         BOOST_THROW_EXCEPTION( projection_exception(error_lat_0_or_alpha_eq_90) );
 
@@ -542,7 +544,7 @@ namespace projections
     */
     template <typename T, typename Parameters>
     struct ob_tran_transverse : public detail::ob_tran::base_ob_tran_transverse<T, Parameters>
-    {        
+    {
         template <typename Params>
         inline ob_tran_transverse(Params const& , Parameters const& ,
                                   detail::ob_tran::par_ob_tran<T, Parameters> const& proj_parm)

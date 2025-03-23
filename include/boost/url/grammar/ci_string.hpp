@@ -12,7 +12,7 @@
 #define BOOST_URL_GRAMMAR_CI_STRING_HPP
 
 #include <boost/url/detail/config.hpp>
-#include <boost/url/string_view.hpp>
+#include <boost/core/detail/string_view.hpp>
 #include <boost/url/grammar/detail/ci_string.hpp>
 #include <cstdlib>
 
@@ -119,8 +119,8 @@ to_upper(char c) noexcept
 BOOST_URL_DECL
 int
 ci_compare(
-    string_view s0,
-    string_view s1) noexcept;
+    core::string_view s0,
+    core::string_view s1) noexcept;
 
 /** Return the case-insensitive digest of a string
 
@@ -139,7 +139,7 @@ ci_compare(
 BOOST_URL_DECL
 std::size_t
 ci_digest(
-    string_view s) noexcept;
+    core::string_view s) noexcept;
 
 //------------------------------------------------
 
@@ -167,6 +167,20 @@ ci_is_equal(
     String1 const& s1);
 #else
 
+/** Return true if s0 equals s1 using case-insensitive comparison
+
+    The function is defined only for strings
+    containing low-ASCII characters.
+
+    @par Example
+    @code
+    assert( ci_is_equal( "Boost", "boost" ) );
+    @endcode
+
+    @see
+        @ref ci_compare,
+        @ref ci_is_less.
+*/
 template<
     class String0,
     class String1>
@@ -176,27 +190,41 @@ ci_is_equal(
     String1 const& s1) ->
         typename std::enable_if<
             ! std::is_convertible<
-                String0, string_view>::value ||
+                String0, core::string_view>::value ||
             ! std::is_convertible<
-                String1, string_view>::value,
+                String1, core::string_view>::value,
         bool>::type
 {
     // this overload supports forward iterators and
-    // does not assume the existence string_view::size
+    // does not assume the existence core::string_view::size
     if( detail::type_id<String0>() >
         detail::type_id<String1>())
         return detail::ci_is_equal(s1, s0);
     return detail::ci_is_equal(s0, s1);
 }
 
+/** Return true if s0 equals s1 using case-insensitive comparison
+
+    The function is defined only for strings
+    containing low-ASCII characters.
+
+    @par Example
+    @code
+    assert( ci_is_equal( "Boost", "boost" ) );
+    @endcode
+
+    @see
+        @ref ci_compare,
+        @ref ci_is_less.
+*/
 inline
 bool
 ci_is_equal(
-    string_view s0,
-    string_view s1) noexcept
+    core::string_view s0,
+    core::string_view s1) noexcept
 {
     // this overload is faster as it makes use of
-    // string_view::size
+    // core::string_view::size
     if(s0.size() != s1.size())
         return false;
     return detail::ci_is_equal(s0, s1);
@@ -224,8 +252,8 @@ ci_is_equal(
 inline
 bool
 ci_is_less(
-    string_view s0,
-    string_view s1) noexcept
+    core::string_view s0,
+    core::string_view s1) noexcept
 {
     if(s0.size() != s1.size())
         return s0.size() < s1.size();
@@ -258,17 +286,42 @@ ci_is_less(
 #ifdef BOOST_URL_DOCS
 using ci_hash = __see_below__;
 #else
+namespace see_below {
 struct ci_hash
 {
     using is_transparent = void;
 
     std::size_t
     operator()(
-        string_view s) const noexcept
+        core::string_view s) const noexcept
     {
         return ci_digest(s);
     }
 };
+}
+
+/** A case-insensitive hash function object for strings
+
+    The hash function is non-cryptographic and
+    not hardened against algorithmic complexity
+    attacks.
+    This is a suitable hash function for
+    unordered containers.
+    The function is defined only for strings
+    containing low-ASCII characters.
+
+    @par Example
+    @code
+    boost::unordered_map< std::string, std::string, ci_hash, ci_equal > m1;
+
+    std::unordered_map  < std::string, std::string, ci_hash, ci_equal > m2; // (since C++20)
+    @endcode
+
+    @see
+        @ref ci_equal,
+        @ref ci_less.
+*/
+using ci_hash = see_below::ci_hash;
 #endif
 
 /** A case-insensitive equals predicate for strings
@@ -294,6 +347,7 @@ struct ci_hash
 #ifdef BOOST_URL_DOCS
 using ci_equal = __see_below__;
 #else
+namespace see_below {
 struct ci_equal
 {
     using is_transparent = void;
@@ -308,6 +362,29 @@ struct ci_equal
         return ci_is_equal(s0, s1);
     }
 };
+} // see_below
+
+/** A case-insensitive equals predicate for strings
+
+    The function object returns `true` when
+    two strings are equal, ignoring case.
+    This is a suitable equality predicate for
+    unordered containers.
+    The function is defined only for strings
+    containing low-ASCII characters.
+
+    @par Example
+    @code
+    boost::unordered_map< std::string, std::string, ci_hash, ci_equal > m1;
+
+    std::unordered_map  < std::string, std::string, ci_hash, ci_equal > m2; // (since C++20)
+    @endcode
+
+    @see
+        @ref ci_hash,
+        @ref ci_less.
+*/
+using ci_equal = see_below::ci_equal;
 #endif
 
 /** A case-insensitive less predicate for strings
@@ -335,18 +412,44 @@ struct ci_equal
 #ifdef BOOST_URL_DOCS
 using ci_less = __see_below__;
 #else
+namespace see_below {
 struct ci_less
 {
     using is_transparent = void;
 
     std::size_t
     operator()(
-        string_view s0,
-        string_view s1) const noexcept
+        core::string_view s0,
+        core::string_view s1) const noexcept
     {
         return ci_is_less(s0, s1);
     }
 };
+}
+
+/** A case-insensitive less predicate for strings
+
+    The comparison algorithm implements a
+    case-insensitive total order on the set
+    of all ASCII strings; however, it is
+    not a lexicographical comparison.
+    This is a suitable predicate for
+    ordered containers.
+    The function is defined only for strings
+    containing low-ASCII characters.
+
+    @par Example
+    @code
+    boost::container::map< std::string, std::string, ci_less > m1;
+
+    std::map< std::string, std::string, ci_less > m2; // (since C++14)
+    @endcode
+
+    @see
+        @ref ci_equal,
+        @ref ci_hash.
+*/
+using ci_less = see_below::ci_less;
 #endif
 
 } // grammar

@@ -64,4 +64,6 @@
 #pragma once
 #endif
 
+#define BOOST_USE_SEGMENTED_STACKS
+
 #endif  // BOOST_CONFIG_HPP

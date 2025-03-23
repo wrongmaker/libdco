@@ -1,4 +1,6 @@
 #include "libdco/co/cocondvariable.h"
+#include "boost/smart_ptr/shared_ptr.hpp"
+#include "libdco/co/all.h"
 
 using namespace dco;
 
@@ -7,17 +9,10 @@ using namespace dco;
       std::chrono::system_clock::now().time_since_epoch())                     \
       .count()
 
-cocondvariable::cocondvariable(coschedule *sche)
-    : ptr_sche_(sche)
-#if DCO_MULT_THREAD
-      ,
-      mtx_ BOOST_DETAIL_SPINLOCK_INIT
-#endif
-{
-}
+cocondvariable::cocondvariable(coschedule *sche) : ptr_sche_(sche) {}
 
 cocondvariable::~cocondvariable() {
-  BOOST_ASSERT(ctx_que_.front() == nullptr); // 这时候应该是没有东西的
+  BOOST_ASSERT(!ctx_que_.pop(nullptr)); // 这时候应该是没有东西的
 }
 
 int cocondvariable::wait(std::unique_lock<comutex_base> &lock,
@@ -26,17 +21,14 @@ int cocondvariable::wait(std::unique_lock<comutex_base> &lock,
   waitnode node(ctx);
   while (!cond()) {
     if (0 != ptr_sche_->dco_yield(ctx, [this, &node, &cond, &lock](coctx *ctx) {
-          {
-#if DCO_MULT_THREAD
-            std::lock_guard<boost::detail::spinlock> lock_mtx(mtx_);
-#endif
-            ctx_que_.push_back(&node);
-          }
+          // 加入队列
+          ctx_que_.push(&node);
           // 等加入在解锁 防止略过唤醒
           lock.mutex()->unlock(); // unlock
         })) {
       // await fail un call callback
       // do not need relock
+      BOOST_ASSERT(false);
       return -1;
     }
     lock.mutex()->lock(); // relock
@@ -58,27 +50,20 @@ int cocondvariable::wait_until(time_t ms_until,
   while (!cond()) {
     int sleep_res = ptr_sche_->dco_sleep_until(
         ctx, ms_until, [this, &node, &cond, &lock](coctx *ctx) {
-          {
-#if DCO_MULT_THREAD
-            std::lock_guard<boost::detail::spinlock> lock_mtx(mtx_);
-#endif
-            ctx_que_.push_back(&node);
-          }
+          // 加入队列
+          ctx_que_.push(&node);
           // 等加入在解锁 防止略过唤醒
           lock.mutex()->unlock(); // unlock
         });
     if (0 > sleep_res) {
       // await fail un call callback
       // do not need relock
+      BOOST_ASSERT(false);
       return -1; // 挂起失败
     }
     if (0 == sleep_res) {
-      {
-#if DCO_MULT_THREAD
-        std::lock_guard<boost::detail::spinlock> lock_mtx(mtx_);
-#endif
-        ctx_que_.remove(&node);
-      }
+      // 移除超时
+      ctx_que_.remove(&node);
       // await success need relock
       lock.mutex()->lock();
       return 0; // 超时
@@ -89,19 +74,7 @@ int cocondvariable::wait_until(time_t ms_until,
 }
 
 bool cocondvariable::notify() {
-  coctx *ctx = nullptr;
-  {
-#if DCO_MULT_THREAD
-    std::lock_guard<boost::detail::spinlock> lock_mtx(mtx_);
-#endif
-    waitnode *node = ctx_que_.front();
-    if (node == nullptr)
-      return false;
-    ctx = node->ctx_;
-    ctx_que_.pop_front();
-  }
-  ptr_sche_->dco_resume(ctx);
-  return true;
+  return dco_futex::dco_notify(ptr_sche_, ctx_que_) == 1;
 }
 
 int cocondvariable::notify_all() {

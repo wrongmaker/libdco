@@ -8,6 +8,7 @@
 #include "libdco/hook/cofdctx.h"
 #include "libdco/util/cosingleton.hpp"
 #include "spdlog/spdlog.h"
+#include "boost/smart_ptr/detail/spinlock.hpp"
 
 namespace dco {
 template <typename R, typename F, typename... Args>

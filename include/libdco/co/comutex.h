@@ -29,35 +29,4 @@ public:
   bool unlock();
 };
 
-// 保证顺序
-class comutex_seq : public comutex_base {
-private:
-  struct waitnode {
-    waitnode *prev_;
-    waitnode *next_;
-    coctx *ctx_;
-    waitnode(coctx *ctx) : prev_(nullptr), next_(nullptr), ctx_(ctx) {}
-    waitnode() = delete;
-    waitnode(const waitnode &) = delete;
-  };
-
-private:
-  coschedule *ptr_sche_;
-  bool flag_;
-  coctx *ctx_curr_;
-  conolist<waitnode> ctx_que_; // 等待队列
-#if DCO_MULT_THREAD
-  mutable boost::detail::spinlock mtx_;
-#endif
-
-public:
-  comutex_seq(const comutex_seq &) = delete;
-  comutex_seq(coschedule *sche);
-  virtual ~comutex_seq();
-
-public:
-  bool lock();
-  bool unlock();
-};
-
 } // namespace dco

@@ -423,6 +423,8 @@ public:
   bool push(const T &val) { return que_.enqueue(val); }
 
   bool pop(T &val) { return que_.try_dequeue(val); }
+  
+  moodycamel::ConcurrentQueue<T> &que() { return que_; }
 
 private:
   moodycamel::ConcurrentQueue<T> que_;

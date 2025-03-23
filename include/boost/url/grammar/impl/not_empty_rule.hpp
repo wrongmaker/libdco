@@ -17,13 +17,14 @@ namespace boost {
 namespace urls {
 namespace grammar {
 
+namespace implementation_defined {
 template<class R>
 auto
 not_empty_rule_t<R>::
 parse(
     char const*& it,
     char const* end) const ->
-        result<value_type>
+        system::result<value_type>
 {
     if(it == end)
     {
@@ -46,6 +47,7 @@ parse(
     }
     // value
     return rv;
+}
 }
 
 } // grammar

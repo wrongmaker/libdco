@@ -4,9 +4,9 @@
 // Copyright (c) 2008-2014 Bruno Lalande, Paris, France.
 // Copyright (c) 2009-2014 Mateusz Loskot, London, UK.
 
-// This file was modified by Oracle on 2014-2021.
-// Modifications copyright (c) 2014-2021, Oracle and/or its affiliates.
-
+// This file was modified by Oracle on 2014-2023.
+// Modifications copyright (c) 2014-2023, Oracle and/or its affiliates.
+// Contributed and/or modified by Vissarion Fysikopoulos, on behalf of Oracle
 // Contributed and/or modified by Menelaos Karavelas, on behalf of Oracle
 // Contributed and/or modified by Adam Wulkiewicz, on behalf of Oracle
 
@@ -20,22 +20,17 @@
 #ifndef BOOST_GEOMETRY_ALGORITHMS_LENGTH_HPP
 #define BOOST_GEOMETRY_ALGORITHMS_LENGTH_HPP
 
-#include <iterator>
-
-#include <boost/core/ignore_unused.hpp>
 #include <boost/range/begin.hpp>
 #include <boost/range/end.hpp>
-#include <boost/range/iterator.hpp>
 #include <boost/range/value_type.hpp>
 
-#include <boost/geometry/algorithms/assign.hpp>
+#include "boost/geometry/algorithms/detail/assign_indexed_point.hpp"
 #include <boost/geometry/algorithms/detail/calculate_null.hpp>
 #include <boost/geometry/algorithms/detail/dummy_geometries.hpp>
 #include <boost/geometry/algorithms/detail/multi_sum.hpp>
 // #include <boost/geometry/algorithms/detail/throw_on_empty_input.hpp>
 #include <boost/geometry/algorithms/detail/visit.hpp>
 
-#include <boost/geometry/core/cs.hpp>
 #include <boost/geometry/core/closure.hpp>
 #include <boost/geometry/core/tag.hpp>
 #include <boost/geometry/core/tags.hpp>
@@ -69,8 +64,7 @@ struct segment_length
     static inline typename default_length_result<Segment>::type
     apply(Segment const& segment, Strategies const& strategies)
     {
-        typedef typename point_type<Segment>::type point_type;
-        point_type p1, p2;
+        point_type_t<Segment> p1, p2;
         geometry::detail::assign_point_from_index<0>(segment, p1);
         geometry::detail::assign_point_from_index<1>(segment, p2);
         return strategies.distance(p1, p2).apply(p1, p2);

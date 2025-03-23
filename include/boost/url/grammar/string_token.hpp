@@ -11,9 +11,8 @@
 #define BOOST_URL_GRAMMAR_STRING_TOKEN_HPP
 
 #include <boost/url/detail/config.hpp>
-#include <boost/url/string_view.hpp>
+#include <boost/core/detail/string_view.hpp>
 #include <boost/url/detail/except.hpp>
-#include <boost/type_traits.hpp>
 #include <memory>
 #include <string>
 
@@ -68,12 +67,22 @@ struct arg
     */
     virtual char* prepare(std::size_t n) = 0;
 
-    // prevent misuse
+    /// Virtual destructor
     virtual ~arg() = default;
+
+    /// Default constructor
     arg() = default;
+
+    /// Default move constructor
     arg(arg&&) = default;
+
+    /// Deleted copy constructor
     arg(arg const&) = delete;
+
+    /// Deleted move assignment
     arg& operator=(arg&&) = delete;
+
+    /// Deleted copy assignment
     arg& operator=(arg const&) = delete;
 };
 
@@ -85,11 +94,16 @@ struct arg
 template<class T>
 using is_token = __see_below__;
 #else
+namespace see_below {
+/** Metafunction returning true if T is a StringToken
+ */
 template<class T, class = void>
 struct is_token : std::false_type {};
 
+/** Metafunction returning true if T is a StringToken
+ */
 template<class T>
-struct is_token<T, boost::void_t<
+struct is_token<T, void_t<
     decltype(std::declval<T&>().prepare(
         std::declval<std::size_t>())),
     decltype(std::declval<T&>().result())
@@ -106,6 +120,12 @@ struct is_token<T, boost::void_t<
     >
 {
 };
+} // see_below
+
+/** Metafunction returning true if T is a StringToken
+ */
+template<class T>
+using is_token = see_below::is_token<T>;
 #endif
 
 //------------------------------------------------
@@ -115,6 +135,7 @@ struct is_token<T, boost::void_t<
 #ifdef BOOST_URL_DOCS
 using return_string = __implementation_defined__;
 #else
+namespace implementation_defined {
 struct return_string
     : arg
 {
@@ -136,6 +157,11 @@ struct return_string
 private:
     result_type s_;
 };
+} // implementation_defined
+
+/** A token for returning a plain string
+ */
+using return_string = implementation_defined::return_string;
 #endif
 
 //------------------------------------------------
@@ -153,6 +179,7 @@ append_to(
         std::char_traits<char>,
         Allocator>& s);
 #else
+namespace implementation_defined {
 template<class Alloc>
 struct append_to_t
     : arg
@@ -189,18 +216,21 @@ struct append_to_t
 private:
     string_type& s_;
 };
+} // implementation_defined
 
+/** Create a token for appending to a plain string
+ */
 template<
     class Alloc =
         std::allocator<char>>
-append_to_t<Alloc>
+implementation_defined::append_to_t<Alloc>
 append_to(
     std::basic_string<
         char,
         std::char_traits<char>,
         Alloc>& s)
 {
-    return append_to_t<Alloc>(s);
+    return implementation_defined::append_to_t<Alloc>(s);
 }
 #endif
 
@@ -219,6 +249,7 @@ assign_to(
         std::char_traits<char>,
         Allocator>& s);
 #else
+namespace implementation_defined {
 template<class Alloc>
 struct assign_to_t
     : arg
@@ -252,24 +283,27 @@ struct assign_to_t
 private:
     string_type& s_;
 };
+} // implementation_defined
 
+/** A token for assigning to a plain string
+ */
 template<
     class Alloc =
         std::allocator<char>>
-assign_to_t<Alloc>
+implementation_defined::assign_to_t<Alloc>
 assign_to(
     std::basic_string<
         char,
         std::char_traits<char>,
         Alloc>& s)
 {
-    return assign_to_t<Alloc>(s);
+    return implementation_defined::assign_to_t<Alloc>(s);
 }
 #endif
 
 //------------------------------------------------
 
-/** A token for producing a durable string_view from a temporary string
+/** A token for producing a durable core::string_view from a temporary string
 */
 #ifdef BOOST_URL_DOCS
 template<
@@ -282,11 +316,12 @@ preserve_size(
         std::char_traits<char>,
         Allocator>& s);
 #else
+namespace implementation_defined {
 template<class Alloc>
 struct preserve_size_t
     : arg
 {
-    using result_type = string_view;
+    using result_type = core::string_view;
 
     using string_type = std::basic_string<
         char, std::char_traits<char>,
@@ -313,7 +348,7 @@ struct preserve_size_t
     result_type
     result() noexcept
     {
-        return string_view(
+        return core::string_view(
             s_.data(), n_);
     }
 
@@ -321,18 +356,21 @@ private:
     string_type& s_;
     std::size_t n_ = 0;
 };
+} // implementation_defined
 
+/** A token for producing a durable core::string_view from a temporary string
+ */
 template<
     class Alloc =
         std::allocator<char>>
-preserve_size_t<Alloc>
+implementation_defined::preserve_size_t<Alloc>
 preserve_size(
     std::basic_string<
         char,
         std::char_traits<char>,
         Alloc>& s)
 {
-    return preserve_size_t<Alloc>(s);
+    return implementation_defined::preserve_size_t<Alloc>(s);
 }
 #endif
 

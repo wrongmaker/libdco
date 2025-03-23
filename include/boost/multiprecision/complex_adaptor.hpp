@@ -20,12 +20,6 @@ namespace multiprecision {
 namespace backends {
 
 template <class Backend>
-struct debug_adaptor;
-
-template <class Backend>
-struct logged_adaptor;
-
-template <class Backend>
 struct complex_adaptor
 {
  protected:
@@ -197,6 +191,56 @@ struct complex_adaptor
    {
       m_real.negate();
       m_imag.negate();
+   }
+
+   //
+   // Default precision:
+   //
+   static BOOST_MP_CXX14_CONSTEXPR unsigned default_precision() noexcept
+   {
+      return Backend::default_precision();
+   }
+   static BOOST_MP_CXX14_CONSTEXPR void default_precision(unsigned digits10)
+   {
+      Backend::default_precision(digits10);
+      Backend::thread_default_precision(digits10);
+   }
+   static BOOST_MP_CXX14_CONSTEXPR unsigned thread_default_precision() noexcept
+   {
+      return Backend::thread_default_precision();
+   }
+   static BOOST_MP_CXX14_CONSTEXPR void thread_default_precision(unsigned digits10)
+   {
+      Backend::thread_default_precision(digits10);
+   }
+   BOOST_MP_CXX14_CONSTEXPR unsigned precision() const noexcept
+   {
+      return m_real.precision();
+   }
+   BOOST_MP_CXX14_CONSTEXPR void precision(unsigned digits10)
+   {
+      m_real.precision(digits10);
+      m_imag.precision(digits10);
+   }
+   //
+   // Variable precision options:
+   // 
+   static constexpr variable_precision_options default_variable_precision_options()noexcept
+   {
+      return Backend::default_variable_precision_options();
+   }
+   static constexpr variable_precision_options thread_default_variable_precision_options()noexcept
+   {
+      return Backend::thread_default_variable_precision_options();
+   }
+   static BOOST_MP_CXX14_CONSTEXPR void default_variable_precision_options(variable_precision_options opts)
+   {
+      Backend::default_variable_precision_options(opts);
+      Backend::thread_default_variable_precision_options(opts);
+   }
+   static BOOST_MP_CXX14_CONSTEXPR void thread_default_variable_precision_options(variable_precision_options opts)
+   {
+      Backend::thread_default_variable_precision_options(opts);
    }
 };
 
@@ -945,8 +989,6 @@ inline std::size_t hash_value(const complex_adaptor<Backend>& val)
 }
 
 } // namespace backends
-
-using boost::multiprecision::backends::complex_adaptor;
 
 template <class Backend>
 struct number_category<complex_adaptor<Backend> > : public std::integral_constant<int, boost::multiprecision::number_kind_complex>

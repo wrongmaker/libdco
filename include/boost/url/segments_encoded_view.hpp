@@ -15,7 +15,7 @@
 #include <boost/url/error_types.hpp>
 #include <boost/url/segments_encoded_base.hpp>
 #include <boost/url/segments_view.hpp>
-#include <boost/url/string_view.hpp>
+#include <boost/core/detail/string_view.hpp>
 #include <iosfwd>
 #include <utility>
 
@@ -165,7 +165,7 @@ public:
     */
     BOOST_URL_DECL
     segments_encoded_view(
-        string_view s);
+        core::string_view s);
 
     /** Assignment
 
@@ -228,10 +228,36 @@ public:
 
     //--------------------------------------------
 
+    /** Parse a string and return an encoded segment view
+
+        This function parses the string and returns the
+        corresponding path object if the string is valid,
+        otherwise returns an error.
+
+        @par BNF
+        @code
+        path          = [ "/" ] segment *( "/" segment )
+        @endcode
+
+        @par Exception Safety
+        No-throw guarantee.
+
+        @return A valid view on success, otherwise an
+        error code.
+
+        @param s The string to parse
+
+        @par Specification
+        @li <a href="https://datatracker.ietf.org/doc/html/rfc3986#section-3.3"
+            >3.3.  Path (rfc3986)</a>
+
+        @see
+            @ref segments_encoded_view.
+    */
     BOOST_URL_DECL
     friend
-        result<segments_encoded_view>
-        parse_path(string_view s) noexcept;
+    system::result<segments_encoded_view>
+    parse_path(core::string_view s) noexcept;
 };
 
 } // urls

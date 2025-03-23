@@ -12,7 +12,8 @@
 
 #include <utility>
 
-BOOST_JSON_NS_BEGIN
+namespace boost {
+namespace json {
 
 string::
 string(
@@ -237,6 +238,15 @@ append(
         tmp.data(), tmp.size());
 }
 
-BOOST_JSON_NS_END
+char&
+string::at(std::size_t pos, source_location const& loc)
+{
+
+    auto const& self = *this;
+    return const_cast< char& >( self.at(pos, loc) );
+}
+
+} // namespace json
+} // namespace boost
 
 #endif

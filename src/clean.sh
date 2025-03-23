@@ -16,4 +16,4 @@ cppclean cosemaphore.cpp --include-path ../include/
 cppclean cotools.cpp --include-path ../include/
 cppclean courand.cpp --include-path ../include/
 cppclean cowaitque.cpp --include-path ../include/
-cppclean cowaitqueex.cpp --include-path ../include/
+cppclean cowaitque.cpp --include-path ../include/

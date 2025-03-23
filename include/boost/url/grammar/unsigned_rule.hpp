@@ -14,7 +14,7 @@
 #include <boost/url/detail/config.hpp>
 #include <boost/url/error_types.hpp>
 #include <boost/url/grammar/charset.hpp>
-#include <boost/url/string_view.hpp>
+#include <boost/core/detail/string_view.hpp>
 #include <boost/static_assert.hpp>
 #include <limits>
 #include <type_traits>
@@ -35,7 +35,7 @@ namespace grammar {
     @par Example
     Rules are used with the function @ref parse.
     @code
-    result< unsigned short > rv = parse( "32767", unsigned_rule< unsigned short >{} );
+    system::result< unsigned short > rv = parse( "32767", unsigned_rule< unsigned short >{} );
     @endcode
 
     @par BNF
@@ -53,6 +53,32 @@ namespace grammar {
 template<class Unsigned>
 struct unsigned_rule;
 #else
+/** Match an unsigned decimal
+
+    Extra leading zeroes are disallowed.
+
+    @par Value Type
+    @code
+    using value_type = Unsigned;
+    @endcode
+
+    @par Example
+    Rules are used with the function @ref parse.
+    @code
+    system::result< unsigned short > rv = parse( "32767", unsigned_rule< unsigned short >{} );
+    @endcode
+
+    @par BNF
+    @code
+    unsigned      = "0" / ( ["1"..."9"] *DIGIT )
+    @endcode
+
+    @tparam Unsigned The unsigned integer type used
+    to store the result.
+
+    @see
+        @ref grammar::parse.
+*/
 template<class Unsigned>
 struct unsigned_rule
 {
@@ -69,7 +95,7 @@ struct unsigned_rule
         char const*& it,
         char const* end
             ) const noexcept ->
-        result<value_type>;
+        system::result<value_type>;
 };
 #endif
 

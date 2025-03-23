@@ -1,5 +1,5 @@
 /* Proposed SG14 status_code
-(C) 2022 Niall Douglas <http://www.nedproductions.biz/> (5 commits)
+(C) 2022-2024 Niall Douglas <http://www.nedproductions.biz/> (5 commits)
 File Created: Jun 2022
 
 
@@ -63,7 +63,6 @@ namespace mixins
 class _http_status_code_domain : public status_code_domain
 {
   template <class DomainType> friend class status_code;
-  template <class StatusCode> friend class detail::indirecting_domain;
   using _base = status_code_domain;
 
 public:
@@ -87,7 +86,11 @@ public:
 
   virtual string_ref name() const noexcept override { return string_ref("HTTP status domain"); }  // NOLINT
 
-  virtual payload_info_t payload_info() const noexcept override { return {sizeof(value_type), sizeof(status_code_domain *) + sizeof(value_type), (alignof(value_type) > alignof(status_code_domain *)) ? alignof(value_type) : alignof(status_code_domain *)}; }
+  virtual payload_info_t payload_info() const noexcept override
+  {
+    return {sizeof(value_type), sizeof(status_code_domain *) + sizeof(value_type),
+            (alignof(value_type) > alignof(status_code_domain *)) ? alignof(value_type) : alignof(status_code_domain *)};
+  }
 
 protected:
   virtual bool _do_failure(const status_code<void> &code) const noexcept override  // NOLINT
@@ -116,7 +119,6 @@ protected:
     case 202:
       return errc::operation_in_progress;
     case 400:
-    case 405:
       return errc::invalid_argument;
     case 401:
       return errc::operation_not_permitted;

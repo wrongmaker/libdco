@@ -33,8 +33,12 @@ http://www.boost.org/LICENSE_1_0.txt)
 #include "win32_code.hpp"
 #endif
 
+#include "std_error_code.hpp"
+
 #include <boost/system/error_code.hpp>
 #include <boost/system/system_error.hpp>
+
+#include <system_error>
 
 BOOST_OUTCOME_SYSTEM_ERROR2_NAMESPACE_BEGIN
 
@@ -62,7 +66,6 @@ namespace mixins
 class _boost_error_code_domain final : public status_code_domain
 {
   template <class DomainType> friend class status_code;
-  template <class StatusCode> friend class detail::indirecting_domain;
   using _base = status_code_domain;
   using _error_code_type = boost::system::error_code;
   using _error_category_type = boost::system::error_category;
@@ -122,7 +125,11 @@ public:
 
   virtual string_ref name() const noexcept override { return string_ref(_name.c_str(), _name.size()); }  // NOLINT
 
-  virtual payload_info_t payload_info() const noexcept override { return {sizeof(value_type), sizeof(status_code_domain *) + sizeof(value_type), (alignof(value_type) > alignof(status_code_domain *)) ? alignof(value_type) : alignof(status_code_domain *)}; }
+  virtual payload_info_t payload_info() const noexcept override
+  {
+    return {sizeof(value_type), sizeof(status_code_domain *) + sizeof(value_type),
+            (alignof(value_type) > alignof(status_code_domain *)) ? alignof(value_type) : alignof(status_code_domain *)};
+  }
 
 protected:
   virtual bool _do_failure(const status_code<void> &code) const noexcept override;
@@ -185,7 +192,7 @@ namespace detail
         }
         if(ret == nullptr && count < max_items)
         {
-          ret = new(&items[count++].domain) _boost_error_code_domain(category);
+          ret = new(BOOST_OUTCOME_SYSTEM_ERROR2_ADDRESS_OF(items[count++].domain)) _boost_error_code_domain(category);
         }
         unlock();
         return ret;
@@ -312,7 +319,15 @@ namespace boost
 {
   namespace system
   {
-    inline BOOST_OUTCOME_SYSTEM_ERROR2_NAMESPACE::boost_error_code make_status_code(error_code c) noexcept { return BOOST_OUTCOME_SYSTEM_ERROR2_NAMESPACE::boost_error_code(c); }
+    inline BOOST_OUTCOME_SYSTEM_ERROR2_NAMESPACE::erased_status_code<int> make_status_code(error_code c) noexcept
+    {
+      if(c.category() == detail::interop_category())
+      {
+        // This is actually a wrap of std::error_code. If this fails to compile, your Boost is too old.
+        return std::make_status_code(std::error_code(c));
+      }
+      return BOOST_OUTCOME_SYSTEM_ERROR2_NAMESPACE::boost_error_code(c);
+    }
   }  // namespace system
 }  // namespace boost
 

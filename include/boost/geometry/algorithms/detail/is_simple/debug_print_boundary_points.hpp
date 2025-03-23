@@ -65,13 +65,8 @@ struct debug_boundary_points_printer<MultiLinestring, multi_linestring_tag>
 {
     static inline void apply(MultiLinestring const& multilinestring)
     {
-        typedef typename point_type<MultiLinestring>::type point_type;
-        typedef std::vector<point_type> point_vector;
-
-        point_vector boundary_points;
-        for (typename boost::range_iterator<MultiLinestring const>::type it
-                 = boost::begin(multilinestring);
-             it != boost::end(multilinestring); ++it)
+        std::vector<point_type_t<MultiLinestring>> boundary_points;
+        for (auto it = boost::begin(multilinestring); it != boost::end(multilinestring); ++it)
         {
             if ( boost::size(*it) > 1
                  && !geometry::equals(range::front(*it), range::back(*it)) )
@@ -85,11 +80,9 @@ struct debug_boundary_points_printer<MultiLinestring, multi_linestring_tag>
                   geometry::less<point_type>());
 
         std::cout << "boundary points: ";
-        for (typename point_vector::const_iterator
-                 pit = boundary_points.begin();
-             pit != boundary_points.end(); ++pit)
+        for (auto const& p : boundary_points)
         {
-            std::cout << " " << geometry::dsv(*pit);
+            std::cout << " " << geometry::dsv(p);
         }
         std::cout << std::endl << std::endl;
     }

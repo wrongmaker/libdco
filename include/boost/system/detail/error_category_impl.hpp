@@ -26,22 +26,22 @@ namespace system
 
 // error_category default implementation
 
-inline error_condition error_category::default_error_condition( int ev ) const BOOST_NOEXCEPT
+inline error_condition error_category::default_error_condition( int ev ) const noexcept
 {
     return error_condition( ev, *this );
 }
 
-inline bool error_category::equivalent( int code, const error_condition & condition ) const BOOST_NOEXCEPT
+inline bool error_category::equivalent( int code, const error_condition & condition ) const noexcept
 {
     return default_error_condition( code ) == condition;
 }
 
-inline bool error_category::equivalent( const error_code & code, int condition ) const BOOST_NOEXCEPT
+inline bool error_category::equivalent( const error_code & code, int condition ) const noexcept
 {
     return code.equals( condition, *this );
 }
 
-inline char const * error_category::message( int ev, char * buffer, std::size_t len ) const BOOST_NOEXCEPT
+inline char const * error_category::message( int ev, char * buffer, std::size_t len ) const noexcept
 {
     if( len == 0 )
     {
@@ -58,27 +58,7 @@ inline char const * error_category::message( int ev, char * buffer, std::size_t 
     try
 #endif
     {
-        std::string m = this->message( ev );
-
-# if defined( BOOST_MSVC )
-#  pragma warning( push )
-#  pragma warning( disable: 4996 )
-# elif defined(__clang__) && defined(__has_warning)
-#  pragma clang diagnostic push
-#  if __has_warning("-Wdeprecated-declarations")
-#   pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#  endif
-# endif
-
-        std::strncpy( buffer, m.c_str(), len - 1 );
-        buffer[ len-1 ] = 0;
-
-# if defined( BOOST_MSVC )
-#  pragma warning( pop )
-# elif defined(__clang__) && defined(__has_warning)
-#  pragma clang diagnostic pop
-# endif
-
+        detail::snprintf( buffer, len, "%s", this->message( ev ).c_str() );
         return buffer;
     }
 #if !defined(BOOST_NO_EXCEPTIONS)
@@ -95,35 +75,14 @@ inline char const * error_category::message( int ev, char * buffer, std::size_t 
 
 // interoperability with std::error_code, std::error_condition
 
-#if defined(BOOST_SYSTEM_HAS_SYSTEM_ERROR)
-
 #include <boost/system/detail/std_category_impl.hpp>
+#include <boost/system/detail/mutex.hpp>
 #include <new>
-
-#if !defined(BOOST_SYSTEM_DISABLE_THREADS)
-# include <mutex>
-#endif
 
 namespace boost
 {
 namespace system
 {
-
-#if !defined(BOOST_SYSTEM_DISABLE_THREADS)
-
-namespace detail
-{
-
-template<class = void> struct stdcat_mx_holder
-{
-    static std::mutex mx_;
-};
-
-template<class T> std::mutex stdcat_mx_holder<T>::mx_;
-
-} // namespace detail
-
-#endif
 
 inline void error_category::init_stdcat() const
 {
@@ -137,13 +96,17 @@ inline void error_category::init_stdcat() const
 
 #endif
 
-#if !defined(BOOST_SYSTEM_DISABLE_THREADS)
-    std::lock_guard<std::mutex> lk( boost::system::detail::stdcat_mx_holder<>::mx_ );
-#endif
+    // detail::mutex has a constexpr default constructor,
+    // and therefore guarantees static initialization, on
+    // everything except VS 2013 (msvc-12.0)
+
+    static system::detail::mutex mx_;
+
+    system::detail::lock_guard<system::detail::mutex> lk( mx_ );
 
     if( sc_init_.load( std::memory_order_acquire ) == 0 )
     {
-        ::new( static_cast<void*>( stdcat_ ) ) boost::system::detail::std_category( this, 0 );
+        ::new( static_cast<void*>( stdcat_ ) ) boost::system::detail::std_category( this, system::detail::id_wrapper<0>() );
         sc_init_.store( 1, std::memory_order_release );
     }
 }
@@ -160,7 +123,7 @@ inline BOOST_NOINLINE error_category::operator std::error_category const & () co
 // This condition must be the same as the one in error_condition.hpp
 #if defined(BOOST_SYSTEM_AVOID_STD_GENERIC_CATEGORY)
 
-        static const boost::system::detail::std_category generic_instance( this, 0x1F4D3 );
+        static const boost::system::detail::std_category generic_instance( this, system::detail::id_wrapper<0x1F4D3>() );
         return generic_instance;
 
 #else
@@ -175,7 +138,7 @@ inline BOOST_NOINLINE error_category::operator std::error_category const & () co
 // This condition must be the same as the one in error_code.hpp
 #if defined(BOOST_SYSTEM_AVOID_STD_SYSTEM_CATEGORY)
 
-        static const boost::system::detail::std_category system_instance( this, 0x1F4D7 );
+        static const boost::system::detail::std_category system_instance( this, system::detail::id_wrapper<0x1F4D7>() );
         return system_instance;
 
 #else
@@ -199,7 +162,5 @@ inline BOOST_NOINLINE error_category::operator std::error_category const & () co
 
 } // namespace system
 } // namespace boost
-
-#endif // #if defined(BOOST_SYSTEM_HAS_SYSTEM_ERROR)
 
 #endif // #ifndef BOOST_SYSTEM_DETAIL_ERROR_CATEGORY_IMPL_HPP_INCLUDED

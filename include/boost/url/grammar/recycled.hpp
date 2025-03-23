@@ -17,6 +17,10 @@
 #include <type_traits>
 #include <stddef.h> // ::max_align_t
 
+#if !defined(BOOST_URL_DISABLE_THREADS)
+# include <mutex>
+#endif
+
 namespace boost {
 namespace urls {
 namespace grammar {
@@ -36,10 +40,25 @@ struct aligned_storage
     void const* addr() const noexcept;
 };
 #else
+/** Provides an aligned storage buffer aligned for T
+
+    @code
+    template<class T>
+    struct aligned_storage
+    {
+        /// Return a pointer to the aligned storage area
+        void* addr() noexcept;
+
+        /// Return a pointer to the aligned storage area
+        void const* addr() const noexcept;
+    };
+    @endcode
+
+ */
 template<class T>
 using aligned_storage =
-    detail::aligned_storage_impl<
-        detail::nearest_pow2(sizeof(T), 64),
+    see_below::aligned_storage_impl<
+        see_below::nearest_pow2(sizeof(T), 64),
             (alignof(::max_align_t) > alignof(T)) ?
                 alignof(::max_align_t) : alignof(T)>;
 #endif
@@ -90,8 +109,14 @@ private:
     {
         T t;
         U* next = nullptr;
+
+#if !defined(BOOST_URL_DISABLE_THREADS)
         std::atomic<
             std::size_t> refs;
+#else
+        std::size_t refs;
+#endif
+
 
         U()
             : refs{1}
@@ -105,12 +130,15 @@ private:
     void release(U* u) noexcept;
 
     U* head_ = nullptr;
+
+#if !defined(BOOST_URL_DISABLE_THREADS)
     std::mutex m_;
+#endif
 };
 
 //------------------------------------------------
 
-/** A pointer to shared instance of T
+/** A pointer to a shared instance of T
 
     This is a smart pointer container which can
     acquire shared ownership of an instance of

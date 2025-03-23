@@ -2,7 +2,8 @@
 
 // Copyright (c) 2017 Adam Wulkiewicz, Lodz, Poland.
 
-// Copyright (c) 2016-2021, Oracle and/or its affiliates.
+// Copyright (c) 2016-2024, Oracle and/or its affiliates.
+// Contributed and/or modified by Vissarion Fysikopoulos, on behalf of Oracle
 // Contributed and/or modified by Adam Wulkiewicz, on behalf of Oracle
 
 // Use, modification and distribution is subject to the Boost Software License,
@@ -23,7 +24,6 @@
 #include <boost/geometry/algorithms/detail/assign_values.hpp>
 #include <boost/geometry/algorithms/detail/assign_indexed_point.hpp>
 #include <boost/geometry/algorithms/detail/equals/point_point.hpp>
-#include <boost/geometry/algorithms/detail/recalculate.hpp>
 
 #include <boost/geometry/formulas/andoyer_inverse.hpp>
 #include <boost/geometry/formulas/sjoberg_intersection.hpp>
@@ -114,8 +114,8 @@ struct geographic_segments
 
         CoordinateType lon;
         CoordinateType lat;
-        SegmentRatio robust_ra;
-        SegmentRatio robust_rb;
+        SegmentRatio ra;
+        SegmentRatio rb;
         intersection_point_flag ip_flag;
     };
 
@@ -215,7 +215,7 @@ private:
                 : Policy::disjoint()
                 ;
         }
-        
+
         calc_t const a1_lon = get_as_radian<0>(a1);
         calc_t const a1_lat = get_as_radian<1>(a1);
         calc_t const a2_lon = get_as_radian<0>(a2);
@@ -315,7 +315,7 @@ private:
         // NOTE: at this point the segments may still be disjoint
         // NOTE: at this point one of the segments may be degenerated
 
-        bool collinear = sides.collinear();       
+        bool collinear = sides.collinear();
 
         if (! collinear)
         {
@@ -489,8 +489,8 @@ private:
 
                 sinfo.lon = lon;
                 sinfo.lat = lat;
-                sinfo.robust_ra.assign(dist_a1_i1, dist_a1_a2);
-                sinfo.robust_rb.assign(dist_b1_i1, dist_b1_b2);
+                sinfo.ra.assign(dist_a1_i1, dist_a1_a2);
+                sinfo.rb.assign(dist_b1_i1, dist_b1_b2);
                 sinfo.ip_flag = ip_flag;
 
                 return Policy::segments_crosses(sides, sinfo, a, b);
@@ -525,7 +525,7 @@ private:
             // distance for ratio
             dist_1_o = dist_1_2 - dist_1_o;
         }
-        
+
         return Policy::one_degenerate(segment, segment_ratio<CalcT>(dist_1_o, dist_1_2), degenerated_a);
     }
 
@@ -764,7 +764,7 @@ private:
         {
             return false;
         }
-        
+
         typedef typename FormulaPolicy::template inverse<CalcT, true, false, false, false, false> inverse_dist;
 
         ip_flag = ipi_inters;
@@ -801,7 +801,7 @@ private:
             dist_a1_ip = res_a1_a2.distance;
             dist_b1_ip = inverse_dist::apply(b1_lon, b1_lat, lon, lat, spheroid).distance; // for consistency
             ip_flag = ipi_at_a2;
-        }        
+        }
 
         return true;
     }

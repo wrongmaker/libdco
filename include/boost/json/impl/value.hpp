@@ -10,21 +10,23 @@
 #ifndef BOOST_JSON_IMPL_VALUE_HPP
 #define BOOST_JSON_IMPL_VALUE_HPP
 
-BOOST_JSON_NS_BEGIN
+namespace boost {
+namespace json {
 
 value&
-value::at_pointer(string_view ptr) &
+value::at_pointer(string_view ptr, source_location const& loc) &
 {
     auto const& self = *this;
-    return const_cast<value&>( self.at_pointer(ptr) );
+    return const_cast<value&>( self.at_pointer(ptr, loc) );
 }
 
 value&&
-value::at_pointer(string_view ptr) &&
+value::at_pointer(string_view ptr, source_location const& loc) &&
 {
-    return std::move( this->at_pointer(ptr) );
+    return std::move( at_pointer(ptr, loc) );
 }
 
-BOOST_JSON_NS_END
+} // namespace json
+} // namespace boost
 
 #endif // BOOST_JSON_IMPL_VALUE_HPP

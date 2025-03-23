@@ -1,7 +1,8 @@
 // Boost.Geometry
 
-// Copyright (c) 2017-2022 Oracle and/or its affiliates.
+// Copyright (c) 2014-2023, Oracle and/or its affiliates.
 
+// Contributed and/or modified by Vissarion Fysikopoulos, on behalf of Oracle
 // Contributed and/or modified by Adam Wulkiewicz, on behalf of Oracle
 
 // Use, modification and distribution is subject to the Boost Software License,
@@ -134,7 +135,7 @@ struct multi_point_geometry_eb<Geometry, multi_linestring_tag>
         template <typename Point, typename Strategy>
         bool apply(Point const& boundary_point, Strategy const&)
         {
-            typedef geometry::less<void, -1, typename Strategy::cs_tag> less_type;
+            typedef geometry::less<void, -1, Strategy> less_type;
 
             if (! std::binary_search(m_points.begin(), m_points.end(),
                                      boundary_point, less_type()) )
@@ -158,9 +159,9 @@ struct multi_point_geometry_eb<Geometry, multi_linestring_tag>
     {
         typedef typename boost::range_value<MultiPoint>::type point_type;
         typedef std::vector<point_type> points_type;
-        typedef geometry::less<void, -1, typename Strategy::cs_tag> less_type;
+        typedef geometry::less<void, -1, Strategy> less_type;
 
-        points_type points(boost::begin(multi_point), boost::end(multi_point));        
+        points_type points(boost::begin(multi_point), boost::end(multi_point));
         std::sort(points.begin(), points.end(), less_type());
 
         boundary_visitor<points_type> visitor(points);
@@ -181,15 +182,13 @@ struct multi_point_single_geometry
                              Result & result,
                              Strategy const& strategy)
     {
-        typedef typename point_type<SingleGeometry>::type point2_type;
-        typedef model::box<point2_type> box2_type;
-        
+        using box2_type = model::box<point_type_t<SingleGeometry>> ;
+
         box2_type box2;
         geometry::envelope(single_geometry, box2, strategy);
         geometry::detail::expand_by_epsilon(box2);
 
-        typedef typename boost::range_const_iterator<MultiPoint>::type iterator;
-        for ( iterator it = boost::begin(multi_point) ; it != boost::end(multi_point) ; ++it )
+        for (auto it = boost::begin(multi_point); it != boost::end(multi_point); ++it)
         {
             if (! (relate::may_update<interior, interior, '0', Transpose>(result)
                 || relate::may_update<interior, boundary, '0', Transpose>(result)
@@ -402,11 +401,9 @@ class multi_point_multi_geometry_ii_ib
     };
 
 public:
-    typedef typename point_type<MultiPoint>::type point1_type;
-    typedef typename point_type<MultiGeometry>::type point2_type;
-    typedef model::box<point1_type> box1_type;
-    typedef model::box<point2_type> box2_type;
-    typedef std::pair<box2_type, std::size_t> box_pair_type;
+    using box1_type = model::box<point_type_t<MultiPoint>>;
+    using box2_type = model::box<point_type_t<MultiGeometry>>;
+    using box_pair_type = std::pair<box2_type, std::size_t>;
 
     template <typename Result, typename Strategy>
     static inline void apply(MultiPoint const& multi_point,
@@ -439,13 +436,10 @@ public:
 template <typename MultiPoint, typename MultiGeometry, bool Transpose>
 struct multi_point_multi_geometry_ii_ib_ie
 {
-    typedef typename point_type<MultiPoint>::type point1_type;
-    typedef typename point_type<MultiGeometry>::type point2_type;
-    typedef model::box<point1_type> box1_type;
-    typedef model::box<point2_type> box2_type;
-    typedef std::pair<box2_type, std::size_t> box_pair_type;
-    typedef std::vector<box_pair_type> boxes_type;
-    typedef typename boxes_type::const_iterator boxes_iterator;
+    using box1_type = model::box<point_type_t<MultiPoint>>;
+    using box2_type = model::box<point_type_t<MultiGeometry>>;
+    using box_pair_type = std::pair<box2_type, std::size_t>;
+    using boxes_type = std::vector<box_pair_type>;
 
     template <typename Result, typename Strategy>
     static inline void apply(MultiPoint const& multi_point,
@@ -466,8 +460,7 @@ struct multi_point_multi_geometry_ii_ib_ie
             rtree(boxes.begin(), boxes.end(),
                   index_parameters_type(index::rstar<4>(), strategy));
 
-        typedef typename boost::range_const_iterator<MultiPoint>::type iterator;
-        for ( iterator it = boost::begin(multi_point) ; it != boost::end(multi_point) ; ++it )
+        for (auto it = boost::begin(multi_point); it != boost::end(multi_point); ++it)
         {
             if (! (relate::may_update<interior, interior, '0', Transpose>(result)
                 || relate::may_update<interior, boundary, '0', Transpose>(result)
@@ -482,10 +475,10 @@ struct multi_point_multi_geometry_ii_ib_ie
             rtree.query(index::intersects(point), std::back_inserter(boxes_found));
 
             bool found_ii_or_ib = false;
-            for (boxes_iterator bi = boxes_found.begin() ; bi != boxes_found.end() ; ++bi)
+            for (auto const& box_found : boxes_found)
             {
                 typename boost::range_value<MultiGeometry>::type const&
-                    single = range::at(multi_geometry, bi->second);
+                    single = range::at(multi_geometry, box_found.second);
 
                 int in_val = detail::within::point_in_geometry(point, single, strategy);
 
@@ -534,9 +527,7 @@ struct multi_point_multi_geometry
                              Result & result,
                              Strategy const& strategy)
     {
-        typedef typename point_type<MultiGeometry>::type point2_type;
-        typedef model::box<point2_type> box2_type;
-        typedef std::pair<box2_type, std::size_t> box_pair_type;
+        using box_pair_type = std::pair<model::box<point_type_t<MultiGeometry>>, std::size_t>;
 
         std::size_t count2 = boost::size(multi_geometry);
         std::vector<box_pair_type> boxes(count2);

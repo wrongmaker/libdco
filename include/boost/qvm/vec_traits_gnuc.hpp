@@ -1,8 +1,7 @@
 #ifndef BOOST_QVM_VEC_TRAITS_GNUC_HPP_INCLUDED
 #define BOOST_QVM_VEC_TRAITS_GNUC_HPP_INCLUDED
 
-// Copyright 2008-2022 Emil Dotchevski and Reverge Studios, Inc.
-
+// Copyright 2008-2024 Emil Dotchevski and Reverge Studios, Inc.
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
@@ -85,10 +84,10 @@ template <class> struct is_vec;
         enum { value = true };\
         };
 
-BOOST_QVM_GNUC_VEC_TYPE(float,2);
-BOOST_QVM_GNUC_VEC_TYPE(float,4);
-BOOST_QVM_GNUC_VEC_TYPE(double,2);
-BOOST_QVM_GNUC_VEC_TYPE(double,4);
+BOOST_QVM_GNUC_VEC_TYPE(float,2)
+BOOST_QVM_GNUC_VEC_TYPE(float,4)
+BOOST_QVM_GNUC_VEC_TYPE(double,2)
+BOOST_QVM_GNUC_VEC_TYPE(double,4)
 
 #undef BOOST_QVM_GNUC_VEC_TYPE
 

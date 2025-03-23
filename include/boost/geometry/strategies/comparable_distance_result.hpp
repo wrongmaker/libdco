@@ -72,14 +72,14 @@ struct comparable_distance_strategy_type<Geometry1, Geometry2, Strategy, true>
     : comparable_distance_strategy_type<Geometry2, Geometry1, Strategy, false>
 {};
 
-    
+
 template <typename Geometry1, typename Geometry2, typename Strategy>
 struct comparable_distance_result
     : strategy::distance::services::return_type
         <
             typename comparable_distance_strategy_type<Geometry1, Geometry2, Strategy>::type,
-            typename point_type<Geometry1>::type,
-            typename point_type<Geometry2>::type
+            point_type_t<Geometry1>,
+            point_type_t<Geometry2>
         >
 {};
 

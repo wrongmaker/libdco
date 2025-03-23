@@ -2,9 +2,9 @@
 
 // Copyright (c) 2007-2015 Barend Gehrels, Amsterdam, the Netherlands.
 
-// This file was modified by Oracle on 2017-2020.
-// Modifications copyright (c) 2017-2020 Oracle and/or its affiliates.
-
+// This file was modified by Oracle on 2017-2024.
+// Modifications copyright (c) 2017-2024 Oracle and/or its affiliates.
+// Contributed and/or modified by Vissarion Fysikopoulos, on behalf of Oracle
 // Contributed and/or modified by Adam Wulkiewicz, on behalf of Oracle
 
 // Use, modification and distribution is subject to the Boost Software License,
@@ -65,8 +65,7 @@ template
     typename Turns,
     typename Indexed,
     typename Geometry1, typename Geometry2,
-    typename RobustPolicy,
-    typename SideStrategy,
+    typename Strategy,
     bool Reverse1, bool Reverse2
 >
 struct less_by_segment_ratio
@@ -74,12 +73,10 @@ struct less_by_segment_ratio
     inline less_by_segment_ratio(Turns const& turns
             , Geometry1 const& geometry1
             , Geometry2 const& geometry2
-            , RobustPolicy const& robust_policy
-            , SideStrategy const& strategy)
+            , Strategy const& strategy)
         : m_turns(turns)
         , m_geometry1(geometry1)
         , m_geometry2(geometry2)
-        , m_robust_policy(robust_policy)
         , m_strategy(strategy)
     {
     }
@@ -89,8 +86,7 @@ private :
     Turns const& m_turns;
     Geometry1 const& m_geometry1;
     Geometry2 const& m_geometry2;
-    RobustPolicy const& m_robust_policy;
-    SideStrategy const& m_strategy;
+    Strategy const& m_strategy;
 
     typedef typename geometry::point_type<Geometry1>::type point_type;
 
@@ -115,8 +111,9 @@ private :
             *right.other_seg_id,
             si, sj);
 
-        int const side_rj_p = m_strategy.apply(pi, pj, rj);
-        int const side_sj_p = m_strategy.apply(pi, pj, sj);
+        auto side_strategy = m_strategy.side();
+        int const side_rj_p = side_strategy.apply(pi, pj, rj);
+        int const side_sj_p = side_strategy.apply(pi, pj, sj);
 
         // Put the one turning left (1; right == -1) as last
         if (side_rj_p != side_sj_p)
@@ -124,8 +121,8 @@ private :
             return side_rj_p < side_sj_p;
         }
 
-        int const side_sj_r = m_strategy.apply(ri, rj, sj);
-        int const side_rj_s = m_strategy.apply(si, sj, rj);
+        int const side_sj_r = side_strategy.apply(ri, rj, sj);
+        int const side_rj_s = side_strategy.apply(si, sj, rj);
 
         // If they both turn left: the most left as last
         // If they both turn right: this is not relevant, but take also here most left
@@ -156,10 +153,8 @@ public :
             return left.subject->fraction < right.subject->fraction;
         }
 
-
-        typedef typename boost::range_value<Turns>::type turn_type;
-        turn_type const& left_turn = m_turns[left.turn_index];
-        turn_type const& right_turn = m_turns[right.turn_index];
+        auto const& left_turn = m_turns[left.turn_index];
+        auto const& right_turn = m_turns[right.turn_index];
 
         // First check "real" intersection (crosses)
         // -> distance zero due to precision, solve it by sorting

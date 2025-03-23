@@ -1,5 +1,5 @@
 /* Proposed SG14 status_code
-(C) 2018-2022 Niall Douglas <http://www.nedproductions.biz/> (5 commits)
+(C) 2018-2024 Niall Douglas <http://www.nedproductions.biz/> (5 commits)
 File Created: Feb 2018
 
 
@@ -41,7 +41,10 @@ BOOST_OUTCOME_SYSTEM_ERROR2_NAMESPACE_BEGIN
 Requires that `DomainType::value_type` implements an `operator<<` overload for `std::ostream`.
 */
 BOOST_OUTCOME_SYSTEM_ERROR2_TEMPLATE(class DomainType)  //
-BOOST_OUTCOME_SYSTEM_ERROR2_TREQUIRES(BOOST_OUTCOME_SYSTEM_ERROR2_TPRED(std::is_same<std::ostream, typename std::decay<decltype(std::declval<std::ostream>() << std::declval<typename status_code<DomainType>::value_type>())>::type>::value)) inline std::ostream &operator<<(std::ostream &s, const status_code<DomainType> &v)
+BOOST_OUTCOME_SYSTEM_ERROR2_TREQUIRES(BOOST_OUTCOME_SYSTEM_ERROR2_TPRED(
+std::is_same<std::ostream,
+             typename std::decay<decltype(std::declval<std::ostream>() << std::declval<typename status_code<DomainType>::value_type>())>::type>::value))
+inline std::ostream &operator<<(std::ostream &s, const status_code<DomainType> &v)
 {
   if(v.empty())
   {
@@ -59,7 +62,7 @@ inline std::ostream &operator<<(std::ostream &s, const status_code_domain::strin
 
 /*! Print the erased status code to a `std::ostream &`.
  */
-template <class ErasedType> inline std::ostream &operator<<(std::ostream &s, const status_code<erased<ErasedType>> &v)
+template <class ErasedType> inline std::ostream &operator<<(std::ostream &s, const status_code<detail::erased<ErasedType>> &v)
 {
   if(v.empty())
   {

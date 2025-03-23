@@ -1,18 +1,18 @@
 #pragma once
 #include "libdco/co/cowaitque.h"
+#include "libdco/co/cosemaphore.h"
+#include "libdco/co/comutex.h"
 
 namespace dco {
 
 class comutexshared {
 private:
-  int state_;       // 占用
-  int flag_;        //
-  int flag_shared_; //
-  cowaitque wait_;
-  cowaitque shared_;
-#if DCO_MULT_THREAD
-  std::mutex mtx_;
-#endif
+  std::atomic<int> count_;
+  std::atomic<int> wait_;
+  cosemaphore rsem_;
+  cosemaphore wsem_;
+  comutex wmtx_;
+
 
 public:
   comutexshared(const comutexshared &) = delete;

@@ -6,7 +6,7 @@ project(libdco VERSION 0.1.0)
 SET(CMAKE_C_COMPILER /usr/bin/clang)
 SET(CMAKE_CXX_COMPILER /usr/bin/clang++)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2 -fPIC -std=c++14 -pthread")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2 -fPIC -std=c++17 -pthread -fvisibility=default")
 
 # 生成libdco
 add_subdirectory(${PROJECT_SOURCE_DIR}/src)

@@ -22,7 +22,7 @@ BOOST_PROCESS_V2_BEGIN_NAMESPACE
  * @tparam Executor The asio executor of the process handle
  * @param proc The process to be run.
  * @return int The exit code of the process
- * @exception system_error An error that might have occured during the wait.
+ * @exception system_error An error that might have occurred during the wait.
  */
 template<typename Executor>
 inline int execute(basic_process<Executor> proc)
@@ -47,7 +47,7 @@ struct execute_op
 
     struct cancel
     {
-        using cancellation_type = BOOST_PROCESS_V2_ASIO_NAMESPACE::cancellation_type;
+        using cancellation_type = net::cancellation_type;
         basic_process<Executor> * proc;
         cancel(basic_process<Executor> * proc) : proc(proc) {}
 
@@ -66,15 +66,15 @@ struct execute_op
     template<typename Self>
     void operator()(Self && self)
     {
-        self.reset_cancellation_state();
-        BOOST_PROCESS_V2_ASIO_NAMESPACE::cancellation_slot s = self.get_cancellation_state().slot();
+        self.reset_cancellation_state(net::enable_total_cancellation());
+        net::cancellation_slot s = self.get_cancellation_state().slot();
         if (s.is_connected())
             s.emplace<cancel>(proc.get());
 
         auto pro_ = proc.get();
         pro_->async_wait(
-                BOOST_PROCESS_V2_ASIO_NAMESPACE::bind_cancellation_slot(
-                    BOOST_PROCESS_V2_ASIO_NAMESPACE::cancellation_slot(),
+                net::bind_cancellation_slot(
+                    net::cancellation_slot(),
                     std::move(self)));
     }
 
@@ -92,26 +92,27 @@ struct execute_op
 /** This function asynchronously for a process to complete.
  * 
  * Cancelling the execution will signal the child process to exit
- * with the following intepretations:
+ * with the following interpretations:
  * 
  *  - cancellation_type::total    -> interrupt
  *  - cancellation_type::partial  -> request_exit
  *  - cancellation_type::terminal -> terminate
  * 
- * It is to note that `async_execute` will us the lowest seelected cancellation 
+ * It is to note that `async_execute` will us the lowest selected cancellation
  * type. A subprocess might ignore anything not terminal.
  */
-template<typename Executor = BOOST_PROCESS_V2_ASIO_NAMESPACE::any_io_executor,
+template<typename Executor = net::any_io_executor,
         BOOST_PROCESS_V2_COMPLETION_TOKEN_FOR(void (error_code, int))
-            WaitHandler BOOST_PROCESS_V2_DEFAULT_COMPLETION_TOKEN_TYPE(Executor)>
+            WaitHandler = net::default_completion_token_t<Executor>>
 inline
-BOOST_PROCESS_V2_INITFN_AUTO_RESULT_TYPE(WaitHandler, void (error_code, int))
-async_execute(basic_process<Executor> proc,
-                         WaitHandler && handler BOOST_ASIO_DEFAULT_COMPLETION_TOKEN(Executor))
+auto async_execute(basic_process<Executor> proc,
+                         WaitHandler && handler = net::default_completion_token_t<Executor>())
+   -> decltype(net::async_compose<WaitHandler, void(error_code, int)>(
+                  detail::execute_op<Executor>{nullptr}, handler, std::declval<Executor>()))
 {
     std::unique_ptr<basic_process<Executor>> pro_(new basic_process<Executor>(std::move(proc)));
-    auto exec = proc.get_executor();
-    return BOOST_PROCESS_V2_ASIO_NAMESPACE::async_compose<WaitHandler, void(error_code, int)>(
+    auto exec = pro_->get_executor();
+    return net::async_compose<WaitHandler, void(error_code, int)>(
             detail::execute_op<Executor>{std::move(pro_)}, handler, exec);
 }
 

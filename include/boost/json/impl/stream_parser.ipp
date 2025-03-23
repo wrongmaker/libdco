@@ -17,7 +17,8 @@
 #include <stdexcept>
 #include <utility>
 
-BOOST_JSON_NS_BEGIN
+namespace boost {
+namespace json {
 
 stream_parser::
 stream_parser(
@@ -60,7 +61,7 @@ stream_parser::
 write_some(
     char const* data,
     std::size_t size,
-    error_code& ec)
+    system::error_code& ec)
 {
     return p_.write_some(
         true, data, size, ec);
@@ -73,7 +74,7 @@ write_some(
     std::size_t size,
     std::error_code& ec)
 {
-    error_code jec;
+    system::error_code jec;
     std::size_t const result = write_some(data, size, jec);
     ec = jec;
     return result;
@@ -85,12 +86,11 @@ write_some(
     char const* data,
     std::size_t size)
 {
-    error_code ec;
+    system::error_code ec;
     auto const n = write_some(
         data, size, ec);
     if(ec)
-        detail::throw_system_error(ec,
-            BOOST_CURRENT_LOCATION);
+        detail::throw_system_error( ec );
     return n;
 }
 
@@ -99,7 +99,7 @@ stream_parser::
 write(
     char const* data,
     std::size_t size,
-    error_code& ec)
+    system::error_code& ec)
 {
     auto const n = write_some(
         data, size, ec);
@@ -118,7 +118,7 @@ write(
     std::size_t size,
     std::error_code& ec)
 {
-    error_code jec;
+    system::error_code jec;
     std::size_t const result = write(data, size, jec);
     ec = jec;
     return result;
@@ -130,18 +130,17 @@ write(
     char const* data,
     std::size_t size)
 {
-    error_code ec;
+    system::error_code ec;
     auto const n = write(
         data, size, ec);
     if(ec)
-        detail::throw_system_error(ec,
-            BOOST_CURRENT_LOCATION);
+        detail::throw_system_error( ec );
     return n;
 }
 
 void
 stream_parser::
-finish(error_code& ec)
+finish(system::error_code& ec)
 {
     p_.write_some(false, nullptr, 0, ec);
 }
@@ -150,18 +149,17 @@ void
 stream_parser::
 finish()
 {
-    error_code ec;
+    system::error_code ec;
     finish(ec);
     if(ec)
-        detail::throw_system_error(ec,
-            BOOST_CURRENT_LOCATION);
+        detail::throw_system_error( ec );
 }
 
 void
 stream_parser::
 finish(std::error_code& ec)
 {
-    error_code jec;
+    system::error_code jec;
     finish(jec);
     ec = jec;
 }
@@ -178,6 +176,7 @@ release()
     return p_.handler().st.release();
 }
 
-BOOST_JSON_NS_END
+} // namespace json
+} // namespace boost
 
 #endif

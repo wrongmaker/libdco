@@ -1,8 +1,7 @@
 #ifndef BOOST_QVM_DETAIL_SWIZZLE_TRAITS_HPP_INCLUDED
 #define BOOST_QVM_DETAIL_SWIZZLE_TRAITS_HPP_INCLUDED
 
-// Copyright 2008-2022 Emil Dotchevski and Reverge Studios, Inc.
-
+// Copyright 2008-2024 Emil Dotchevski and Reverge Studios, Inc.
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
@@ -344,7 +343,7 @@ vec_traits<qvm_detail::sws_<OriginalScalar,SwizzleList> >
         BOOST_QVM_STATIC_ASSERT(I>=0);
         BOOST_QVM_STATIC_ASSERT(I<dim);
         int const idx=qvm_detail::swizzle<SwizzleList,I>::value;
-        BOOST_QVM_STATIC_ASSERT(idx==0);
+        BOOST_QVM_STATIC_ASSERT(idx<1);
         return reinterpret_cast<OriginalScalar &>(x);
         }
     };

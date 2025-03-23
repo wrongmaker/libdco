@@ -39,22 +39,6 @@
 namespace boost {
 namespace multiprecision {
 
-enum mpfr_allocation_type
-{
-   allocate_stack,
-   allocate_dynamic
-};
-
-namespace backends {
-
-template <unsigned digits10, mpfr_allocation_type AllocationType = allocate_dynamic>
-struct mpfr_float_backend;
-
-template <>
-struct mpfr_float_backend<0, allocate_stack>;
-
-} // namespace backends
-
 template <unsigned digits10, mpfr_allocation_type AllocationType>
 struct number_category<backends::mpfr_float_backend<digits10, AllocationType> > : public std::integral_constant<int, number_kind_floating_point>
 {};
@@ -2020,17 +2004,6 @@ struct number_category<detail::canonical<mpfr_t, backends::mpfr_float_backend<0>
 template <unsigned D, boost::multiprecision::mpfr_allocation_type A1, boost::multiprecision::mpfr_allocation_type A2>
 struct is_equivalent_number_type<backends::mpfr_float_backend<D, A1>, backends::mpfr_float_backend<D, A2> > : public std::integral_constant<bool, true> {};
 
-using boost::multiprecision::backends::mpfr_float_backend;
-
-using mpfr_float_50 = number<mpfr_float_backend<50> >  ;
-using mpfr_float_100 = number<mpfr_float_backend<100> > ;
-using mpfr_float_500 = number<mpfr_float_backend<500> > ;
-using mpfr_float_1000 = number<mpfr_float_backend<1000> >;
-using mpfr_float = number<mpfr_float_backend<0> >   ;
-
-using static_mpfr_float_50 = number<mpfr_float_backend<50, allocate_stack> > ;
-using static_mpfr_float_100 = number<mpfr_float_backend<100, allocate_stack> >;
-
 template <unsigned Digits10, boost::multiprecision::mpfr_allocation_type AllocateType, boost::multiprecision::expression_template_option ExpressionTemplates>
 inline boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates> copysign BOOST_PREVENT_MACRO_SUBSTITUTION(const boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates>& a, const boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates>& b)
 {
@@ -2829,6 +2802,8 @@ inline boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<D
    boost::multiprecision::detail::scoped_default_precision<boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates> > precision_guard(arg);
 
    boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates> result;
+   if (mpfr_nan_p(arg.backend().data()))
+      return policies::raise_domain_error("cbrt<%1%>(%1%)", "Input is a NaN", result, Policy());
    mpfr_cbrt(result.backend().data(), arg.backend().data(), GMP_RNDN);
    if (mpfr_inf_p(result.backend().data()))
       return policies::raise_overflow_error<boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates> >("cbrt<%1%>(%1%)", nullptr, Policy());
@@ -2848,6 +2823,8 @@ inline boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<D
    boost::multiprecision::detail::scoped_default_precision<boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates> > precision_guard(arg);
 
    boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates> result;
+   if (mpfr_nan_p(arg.backend().data()))
+      return policies::raise_domain_error("erf<%1%>(%1%)", "Input is a NaN", result, pol);
    mpfr_erf(result.backend().data(), arg.backend().data(), GMP_RNDN);
    if (mpfr_inf_p(result.backend().data()))
       return policies::raise_overflow_error<boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates> >("erf<%1%>(%1%)", nullptr, pol);
@@ -2867,6 +2844,8 @@ inline boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<D
    boost::multiprecision::detail::scoped_default_precision<boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates> > precision_guard(arg);
 
    boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates> result;
+   if (mpfr_nan_p(arg.backend().data()))
+      return policies::raise_domain_error("erf<%1%>(%1%)", "Input is a NaN", result, pol);
    mpfr_erfc(result.backend().data(), arg.backend().data(), GMP_RNDN);
    if (mpfr_inf_p(result.backend().data()))
       return policies::raise_overflow_error<boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates> >("erfc<%1%>(%1%)", nullptr, pol);
@@ -2886,6 +2865,8 @@ inline boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<D
    boost::multiprecision::detail::scoped_default_precision<boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates> > precision_guard(arg);
 
    boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates> result;
+   if (mpfr_nan_p(arg.backend().data()))
+      return policies::raise_domain_error("erf<%1%>(%1%)", "Input is a NaN", result, pol);
    mpfr_expm1(result.backend().data(), arg.backend().data(), GMP_RNDN);
    if (mpfr_inf_p(result.backend().data()))
       return policies::raise_overflow_error<boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates> >("expm1<%1%>(%1%)", nullptr, pol);
@@ -2894,7 +2875,7 @@ inline boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<D
    return result;
 }
 template <unsigned Digits10, boost::multiprecision::mpfr_allocation_type AllocateType, boost::multiprecision::expression_template_option ExpressionTemplates>
-inline boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates> exm1 BOOST_PREVENT_MACRO_SUBSTITUTION(const boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates>& arg)
+inline boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates> expm1 BOOST_PREVENT_MACRO_SUBSTITUTION(const boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates>& arg)
 {
    return expm1(arg, policies::policy<>());
 }
@@ -3443,8 +3424,15 @@ class numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfr_f
    static constexpr bool has_infinity                  = true;
    static constexpr bool has_quiet_NaN                 = true;
    static constexpr bool has_signaling_NaN             = false;
-   static constexpr float_denorm_style has_denorm      = denorm_absent;
-   static constexpr bool               has_denorm_loss = false;
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#endif
+   static constexpr float_denorm_style       has_denorm      = denorm_absent;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+   static constexpr bool has_denorm_loss = false;
    static number_type                        infinity()
    {
       number_type value;
@@ -3461,7 +3449,7 @@ class numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfr_f
    {
       return number_type(0);
    }
-   static constexpr number_type denorm_min() { return number_type(0); }
+   static constexpr number_type denorm_min() { return (min)(); }
    static constexpr bool        is_iec559         = false;
    static constexpr bool        is_bounded        = true;
    static constexpr bool        is_modulo         = false;
@@ -3498,8 +3486,15 @@ template <unsigned Digits10, boost::multiprecision::mpfr_allocation_type Allocat
 constexpr bool numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates> >::has_quiet_NaN;
 template <unsigned Digits10, boost::multiprecision::mpfr_allocation_type AllocateType, boost::multiprecision::expression_template_option ExpressionTemplates>
 constexpr bool numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates> >::has_signaling_NaN;
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#endif
 template <unsigned Digits10, boost::multiprecision::mpfr_allocation_type AllocateType, boost::multiprecision::expression_template_option ExpressionTemplates>
 constexpr float_denorm_style numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates> >::has_denorm;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 template <unsigned Digits10, boost::multiprecision::mpfr_allocation_type AllocateType, boost::multiprecision::expression_template_option ExpressionTemplates>
 constexpr bool numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates> >::has_denorm_loss;
 template <unsigned Digits10, boost::multiprecision::mpfr_allocation_type AllocateType, boost::multiprecision::expression_template_option ExpressionTemplates>
@@ -3562,8 +3557,15 @@ class numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfr_f
    static constexpr bool has_infinity                  = true;
    static constexpr bool has_quiet_NaN                 = true;
    static constexpr bool has_signaling_NaN             = false;
-   static constexpr float_denorm_style has_denorm      = denorm_absent;
-   static constexpr bool               has_denorm_loss = false;
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#endif
+   static constexpr float_denorm_style       has_denorm      = denorm_absent;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+   static constexpr bool has_denorm_loss = false;
    static number_type                        infinity()
    {
       number_type value;
@@ -3577,7 +3579,7 @@ class numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfr_f
       return value;
    }
    static number_type          signaling_NaN() { return number_type(0); }
-   static number_type          denorm_min() { return number_type(0); }
+   static number_type          denorm_min() { return (min)(); }
    static constexpr bool is_iec559                = false;
    static constexpr bool is_bounded               = true;
    static constexpr bool is_modulo                = false;
@@ -3614,8 +3616,15 @@ template <boost::multiprecision::expression_template_option ExpressionTemplates>
 constexpr bool numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<0>, ExpressionTemplates> >::has_quiet_NaN;
 template <boost::multiprecision::expression_template_option ExpressionTemplates>
 constexpr bool numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<0>, ExpressionTemplates> >::has_signaling_NaN;
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#endif
 template <boost::multiprecision::expression_template_option ExpressionTemplates>
 constexpr float_denorm_style numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<0>, ExpressionTemplates> >::has_denorm;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 template <boost::multiprecision::expression_template_option ExpressionTemplates>
 constexpr bool numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<0>, ExpressionTemplates> >::has_denorm_loss;
 template <boost::multiprecision::expression_template_option ExpressionTemplates>

@@ -11,12 +11,14 @@
 #define BOOST_JSON_SERIALIZER_HPP
 
 #include <boost/json/detail/config.hpp>
-#include <boost/json/value.hpp>
 #include <boost/json/detail/format.hpp>
-#include <boost/json/detail/stack.hpp>
 #include <boost/json/detail/stream.hpp>
+#include <boost/json/detail/writer.hpp>
+#include <boost/json/serialize_options.hpp>
+#include <boost/json/value.hpp>
 
-BOOST_JSON_NS_BEGIN
+namespace boost {
+namespace json {
 
 /** A serializer for JSON.
 
@@ -54,47 +56,13 @@ BOOST_JSON_NS_BEGIN
     The same instance may not be accessed concurrently.
 */
 class serializer
+    : detail::writer
 {
-    enum class state : char;
-    // VFALCO Too many streams
-    using stream = detail::stream;
-    using const_stream = detail::const_stream;
-    using local_stream = detail::local_stream;
-    using local_const_stream =
-        detail::local_const_stream;
+    using fn_t = bool (*)(writer&, detail::stream&);
 
-    using fn_t = bool (serializer::*)(stream&);
-
-#ifndef BOOST_JSON_DOCS
-    union
-    {
-        value const* pv_;
-        array const* pa_;
-        object const* po_;
-    };
-#endif
-    fn_t fn0_ = &serializer::write_null<true>;
-    fn_t fn1_ = &serializer::write_null<false>;
-    value const* jv_ = nullptr;
-    detail::stack st_;
-    const_stream cs0_;
-    char buf_[detail::max_number_chars + 1];
+    fn_t fn0_ = nullptr;
+    fn_t fn1_ = nullptr;
     bool done_ = false;
-
-    inline bool suspend(state st);
-    inline bool suspend(
-        state st, array::const_iterator it, array const* pa);
-    inline bool suspend(
-        state st, object::const_iterator it, object const* po);
-    template<bool StackEmpty> bool write_null   (stream& ss);
-    template<bool StackEmpty> bool write_true   (stream& ss);
-    template<bool StackEmpty> bool write_false  (stream& ss);
-    template<bool StackEmpty> bool write_string (stream& ss);
-    template<bool StackEmpty> bool write_number (stream& ss);
-    template<bool StackEmpty> bool write_array  (stream& ss);
-    template<bool StackEmpty> bool write_object (stream& ss);
-    template<bool StackEmpty> bool write_value  (stream& ss);
-    inline string_view read_some(char* dest, std::size_t size);
 
 public:
     /// Move constructor (deleted)
@@ -110,10 +78,12 @@ public:
         @par Exception Safety
         No-throw guarantee.
     */
+#ifdef BOOST_JSON_DOCS
     BOOST_JSON_DECL
     ~serializer() noexcept;
+#endif // BOOST_JSON_DOCS
 
-    /** Default constructor
+    /** Constructor
 
         This constructs a serializer with no value.
         The value may be set later by calling @ref reset.
@@ -125,9 +95,46 @@ public:
 
         @par Exception Safety
         No-throw guarantee.
+
+        @param opts The options for the serializer. If this parameter
+        is omitted, the serializer will output only standard JSON.
     */
     BOOST_JSON_DECL
-    serializer() noexcept;
+    serializer( serialize_options const& opts = {} ) noexcept;
+
+    /** Constructor
+
+        This constructs a serializer with no value.
+        The value may be set later by calling @ref reset.
+        If serialization is attempted with no value,
+        the output is as if a null value is serialized.
+
+        @par Complexity
+        Constant.
+
+        @par Exception Safety
+        No-throw guarantee.
+
+        @param sp A pointer to the `boost::container::pmr::memory_resource` to
+        use when producing partial output. Shared ownership of the memory
+        resource is retained until the serializer is destroyed.
+
+        @param buf An optional static buffer to
+        use for temporary storage when producing
+        partial output.
+
+        @param buf_size The number of bytes of
+        valid memory pointed to by `buf`.
+
+        @param opts The options for the serializer. If this parameter
+        is omitted, the serializer will output only standard JSON.
+    */
+    BOOST_JSON_DECL
+    serializer(
+        storage_ptr sp,
+        unsigned char* buf = nullptr,
+        std::size_t buf_size = 0,
+        serialize_options const& opts = {}) noexcept;
 
     /** Returns `true` if the serialization is complete
 
@@ -175,6 +182,10 @@ public:
     BOOST_JSON_DECL
     void
     reset(string const* p) noexcept;
+
+    template<class T>
+    void
+    reset(T const* p) noexcept;
     /** @} */
 
     /** Reset the serializer for a new string
@@ -193,6 +204,17 @@ public:
     BOOST_JSON_DECL
     void
     reset(string_view sv) noexcept;
+
+    /** Reset the serializer for std::nullptr_t
+
+        This function prepares the serializer to emit
+        a new serialized JSON representing null.
+        Any internally allocated memory is
+        preserved and re-used for the new output.
+    */
+    BOOST_JSON_DECL
+    void
+    reset(std::nullptr_t) noexcept;
 
     /** Read the next buffer of serialized JSON
 
@@ -285,6 +307,9 @@ public:
 #endif
 };
 
-BOOST_JSON_NS_END
+} // namespace json
+} // namespace boost
+
+#include <boost/json/impl/serializer.hpp>
 
 #endif

@@ -4,8 +4,9 @@
 // Contributed and/or modified by Yaghyavardhan Singh Khangarot,
 //   as part of Google Summer of Code 2018 program.
 
-// This file was modified by Oracle on 2018-2021.
-// Modifications copyright (c) 2018-2021 Oracle and/or its affiliates.
+// This file was modified by Oracle on 2018-2023.
+// Modifications copyright (c) 2018-2023 Oracle and/or its affiliates.
+// Contributed and/or modified by Vissarion Fysikopoulos, on behalf of Oracle
 // Contributed and/or modified by Adam Wulkiewicz, on behalf of Oracle
 
 // Use, modification and distribution is subject to the Boost Software License,
@@ -15,16 +16,13 @@
 #ifndef BOOST_GEOMETRY_ALGORITHMS_DISCRETE_FRECHET_DISTANCE_HPP
 #define BOOST_GEOMETRY_ALGORITHMS_DISCRETE_FRECHET_DISTANCE_HPP
 
-#include <algorithm>
-
 #ifdef BOOST_GEOMETRY_DEBUG_FRECHET_DISTANCE
 #include <iostream>
 #endif
 
-#include <iterator>
-#include <utility>
 #include <vector>
-#include <limits>
+
+#include <boost/range/size.hpp>
 
 #include <boost/geometry/algorithms/detail/dummy_geometries.hpp>
 #include <boost/geometry/algorithms/detail/throw_on_empty_input.hpp>
@@ -78,8 +76,8 @@ struct linestring_linestring
     {
         typedef typename distance_result
             <
-                typename point_type<Linestring1>::type,
-                typename point_type<Linestring2>::type,
+                point_type_t<Linestring1>,
+                point_type_t<Linestring2>,
                 Strategies
             >::type result_type;
         typedef typename boost::range_size<Linestring1>::type size_type1;
@@ -227,15 +225,15 @@ struct discrete_frechet_distance<default_strategy, false>
 
 
 /*!
-\brief Calculate discrete Frechet distance between two geometries (currently
-       works for LineString-LineString) using specified strategy.
+\brief \brief_calc2{discrete Frechet distance, between} \brief_strategy
+\details \details_free_function{discrete_frechet_distance, discrete Frechet distance, between}.
 \ingroup discrete_frechet_distance
 \tparam Geometry1 \tparam_geometry
 \tparam Geometry2 \tparam_geometry
-\tparam Strategy A type fulfilling a DistanceStrategy concept
-\param geometry1 Input geometry
-\param geometry2 Input geometry
-\param strategy Distance strategy to be used to calculate Pt-Pt distance
+\tparam Strategy \tparam_strategy{Distance}
+\param geometry1 \param_geometry
+\param geometry2 \param_geometry
+\param strategy \param_strategy{point to point distance}
 
 \qbk{distinguish,with strategy}
 \qbk{[include reference/algorithms/discrete_frechet_distance.qbk]}
@@ -244,7 +242,8 @@ struct discrete_frechet_distance<default_strategy, false>
 [heading Available Strategies]
 \* [link geometry.reference.strategies.strategy_distance_pythagoras Pythagoras (cartesian)]
 \* [link geometry.reference.strategies.strategy_distance_haversine Haversine (spherical)]
-[/ \* more (currently extensions): Vincenty\, Andoyer (geographic) ]
+\* One of the geographic point to point strategies
+
 
 [heading Example]
 [discrete_frechet_distance_strategy]
@@ -265,13 +264,13 @@ inline auto discrete_frechet_distance(Geometry1 const& geometry1,
 // Algorithm overload using default Pt-Pt distance strategy
 
 /*!
-\brief Calculate discrete Frechet distance between two geometries (currently
-       work for LineString-LineString).
+\brief \brief_calc2{discrete Frechet distance, between}
+\details \details_free_function{discrete_frechet_distance, discrete Frechet distance, between}.
 \ingroup discrete_frechet_distance
 \tparam Geometry1 \tparam_geometry
 \tparam Geometry2 \tparam_geometry
-\param geometry1 Input geometry
-\param geometry2 Input geometry
+\param geometry1 \param_geometry
+\param geometry2 \param_geometry
 
 \qbk{[include reference/algorithms/discrete_frechet_distance.qbk]}
 

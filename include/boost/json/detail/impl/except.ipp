@@ -15,60 +15,36 @@
 #include <boost/throw_exception.hpp>
 #include <stdexcept>
 
-BOOST_JSON_NS_BEGIN
+namespace boost {
+namespace json {
 
 namespace detail {
 
 void
-throw_bad_alloc(
+throw_system_error(
+    system::error_code const& ec,
     source_location const& loc)
 {
     throw_exception(
-        std::bad_alloc(),
-        loc);
-}
-
-void
-throw_length_error(
-    char const* what,
-    source_location const& loc)
-{
-    throw_exception(
-        std::length_error(what),
-        loc);
-}
-
-void
-throw_invalid_argument(
-    char const* what,
-    source_location const& loc)
-{
-    throw_exception(
-        std::invalid_argument(what),
-        loc);
-}
-
-void
-throw_out_of_range(
-    source_location const& loc)
-{
-    throw_exception(
-        std::out_of_range(
-            "out of range"),
+        system::system_error(ec),
         loc);
 }
 
 void
 throw_system_error(
-    error_code const& ec,
-    source_location const& loc)
+    error e,
+    source_location const* loc)
 {
+    system::error_code ec;
+    ec.assign(e, loc);
+
     throw_exception(
-        system_error(ec),
-        loc);
+        system::system_error(ec),
+        *loc);
 }
 
 } // detail
-BOOST_JSON_NS_END
+} // namespace json
+} // namespace boost
 
 #endif

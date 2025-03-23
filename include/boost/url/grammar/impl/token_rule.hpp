@@ -18,12 +18,12 @@ namespace grammar {
 
 template<class CharSet>
 auto
-token_rule_t<CharSet>::
+implementation_defined::token_rule_t<CharSet>::
 parse(
     char const*& it,
     char const* end
         ) const noexcept ->
-    result<value_type>
+    system::result<value_type>
 {
     auto const it0 = it;
     if(it == end)
@@ -33,7 +33,7 @@ parse(
     }
     it = (find_if_not)(it, end, cs_);
     if(it != it0)
-        return string_view(it0, it - it0);
+        return core::string_view(it0, it - it0);
     BOOST_URL_RETURN_EC(
         error::mismatch);
 }

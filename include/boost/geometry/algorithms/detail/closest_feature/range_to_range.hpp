@@ -150,7 +150,7 @@ public:
         apply(rtree_first, rtree_last, queries_first, queries_last,
               strategy, rtree_min, qit_min, dist_min);
 
-        return std::make_pair(rtree_min, qit_min);        
+        return std::make_pair(rtree_min, qit_min);
     }
 
 
@@ -177,14 +177,14 @@ public:
         typename strategy::distance::services::return_type
             <
                 Strategy,
-                typename point_type<rtree_value_type>::type,
-                typename point_type
+                point_type_t<rtree_value_type>,
+                point_type_t
                     <
                         typename std::iterator_traits
                             <
                                 QueryRangeIterator
                             >::value_type
-                    >::type
+                    >
             >::type dist_min;
 
         return apply(rtree_first, rtree_last, queries_first, queries_last,

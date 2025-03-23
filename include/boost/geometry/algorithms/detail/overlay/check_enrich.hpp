@@ -26,6 +26,7 @@
 #include <boost/range/value_type.hpp>
 
 #include <boost/geometry/algorithms/detail/overlay/overlay_type.hpp>
+#include <boost/geometry/views/enumerate_view.hpp>
 
 
 namespace boost { namespace geometry
@@ -122,42 +123,35 @@ inline void check_detailed(MetaTurns& meta_turns, MetaTurn const& meta_turn,
 
 
 template <typename TurnPoints>
-inline bool check_graph(TurnPoints& turn_points, operation_type for_operation)
+inline bool check_graph(TurnPoints const& turn_points, operation_type for_operation)
 {
-    typedef typename boost::range_value<TurnPoints>::type turn_point_type;
+    using turn_point_type = typename boost::range_value<TurnPoints>::type;
 
     bool error = false;
-    int index = 0;
 
     std::vector<meta_turn<turn_point_type> > meta_turns;
-    for (typename boost::range_iterator<TurnPoints const>::type
-            it = boost::begin(turn_points);
-         it != boost::end(turn_points);
-         ++it, ++index)
+    for (auto const& item : util::enumerate(turn_points))
     {
-        meta_turns.push_back(meta_turn<turn_point_type>(index, *it));
+        meta_turns.push_back(meta_turn<turn_point_type>(item.index, item.value));
     }
 
     int cycle = 0;
-    for (typename boost::range_iterator<std::vector<meta_turn<turn_point_type> > > ::type
-            it = boost::begin(meta_turns);
-         it != boost::end(meta_turns);
-         ++it)
+    for (auto& meta_turn : meta_turns)
     {
-        if (! (it->turn->blocked() || it->turn->discarded))
+        if (! (meta_turn.turn->blocked() || meta_turn.turn->discarded))
         {
             for (int i = 0 ; i < 2; i++)
             {
-                if (! it->handled[i]
-                    && it->turn->operations[i].operation == for_operation)
+                if (! meta_turn.handled[i]
+                    && meta_turn.turn->operations[i].operation == for_operation)
                 {
 #ifdef BOOST_GEOMETRY_DEBUG_ENRICH
                     std::cout << "CYCLE " << cycle << std::endl;
 #endif
-                    it->handled[i] = true;
-                    check_detailed(meta_turns, *it, i, cycle++, it->index, for_operation, error);
+                    meta_turn.handled[i] = true;
+                    check_detailed(meta_turns, meta_turn, i, cycle++, meta_turn.index, for_operation, error);
 #ifdef BOOST_GEOMETRY_DEBUG_ENRICH
-                    std::cout <<" END CYCLE " << it->index << std::endl;
+                    std::cout <<" END CYCLE " << meta_turn.index << std::endl;
 #endif
                 }
             }

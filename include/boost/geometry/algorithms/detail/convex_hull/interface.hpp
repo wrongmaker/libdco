@@ -3,6 +3,7 @@
 // Copyright (c) 2007-2015 Barend Gehrels, Amsterdam, the Netherlands.
 // Copyright (c) 2008-2015 Bruno Lalande, Paris, France.
 // Copyright (c) 2009-2015 Mateusz Loskot, London, UK.
+// Copyright (c) 2023 Adam Wulkiewicz, Lodz, Poland.
 
 // This file was modified by Oracle on 2014-2021.
 // Modifications copyright (c) 2014-2021 Oracle and/or its affiliates.
@@ -22,6 +23,8 @@
 #define BOOST_GEOMETRY_ALGORITHMS_CONVEX_HULL_INTERFACE_HPP
 
 #include <array>
+
+#include <boost/range/size.hpp>
 
 #include <boost/geometry/algorithms/detail/assign_box_corners.hpp>
 #include <boost/geometry/algorithms/detail/convex_hull/graham_andrew.hpp>
@@ -50,7 +53,7 @@
 #include <boost/geometry/strategies/convex_hull/spherical.hpp>
 #include <boost/geometry/strategies/default_strategy.hpp>
 
-#include <boost/geometry/util/condition.hpp>
+#include <boost/geometry/util/constexpr.hpp>
 #include <boost/geometry/util/range.hpp>
 #include <boost/geometry/util/sequence.hpp>
 #include <boost/geometry/util/type_traits.hpp>
@@ -207,10 +210,10 @@ struct convex_hull
                              OutputGeometry& out,
                              Strategy const& strategy)
     {
-        detail::convex_hull::input_geometry_proxy<Geometry> in_proxy(geometry);        
+        detail::convex_hull::input_geometry_proxy<Geometry> in_proxy(geometry);
         detail::convex_hull::graham_andrew
             <
-                typename point_type<Geometry>::type
+                point_type_t<Geometry>
             >::apply(in_proxy, out, strategy);
     }
 };
@@ -224,20 +227,20 @@ struct convex_hull<Box, box_tag>
     template <typename OutputGeometry, typename Strategy>
     static inline void apply(Box const& box,
                              OutputGeometry& out,
-                             Strategy const& strategy)
+                             Strategy const& )
     {
         static bool const Close
             = geometry::closure<OutputGeometry>::value == closed;
         static bool const Reverse
             = geometry::point_order<OutputGeometry>::value == counterclockwise;
 
-        std::array<typename point_type<OutputGeometry>::type, 4> arr;
+        std::array<point_type_t<OutputGeometry>, 4> arr;
         // TODO: This assigns only 2d cooridnates!
         //       And it is also used in box_view<>!
         geometry::detail::assign_box_corners_oriented<Reverse>(box, arr);
 
         std::move(arr.begin(), arr.end(), range::back_inserter(out));
-        if (BOOST_GEOMETRY_CONDITION(Close))
+        if BOOST_GEOMETRY_CONSTEXPR (Close)
         {
             range::push_back(out, range::front(out));
         }

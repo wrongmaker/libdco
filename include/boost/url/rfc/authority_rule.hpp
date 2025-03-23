@@ -27,7 +27,7 @@ namespace urls {
     @par Example
     Rules are used with the function @ref grammar::parse.
     @code
-    result< authority_view > rv = grammar::parse( "user:pass@example.com:8080", authority_rule );
+    system::result< authority_view > rv = grammar::parse( "user:pass@example.com:8080", authority_rule );
     @endcode
 
     @par BNF
@@ -47,6 +47,8 @@ namespace urls {
 #ifdef BOOST_URL_DOCS
 constexpr __implementation_defined__ authority_rule;
 #else
+
+namespace implementation_defined {
 struct authority_rule_t
 {
     using value_type = authority_view;
@@ -57,10 +59,38 @@ struct authority_rule_t
         char const*& it,
         char const* end
             ) const noexcept ->
-        result<value_type>;
+        system::result<value_type>;
 };
+} // implementation_defined
 
-constexpr authority_rule_t authority_rule{};
+/** Rule for authority
+
+    @par Value Type
+    @code
+    using value_type = authority_view;
+    @endcode
+
+    @par Example
+    Rules are used with the function @ref grammar::parse.
+    @code
+    system::result< authority_view > rv = grammar::parse( "user:pass@example.com:8080", authority_rule );
+    @endcode
+
+    @par BNF
+    @code
+    authority   = [ userinfo "@" ] host [ ":" port ]
+    @endcode
+
+    @par Specification
+    @li <a href="https://datatracker.ietf.org/doc/html/rfc3986#section-3.2"
+        >3.2. Authority (rfc3986)</a>
+
+    @see
+        @ref authority_view,
+        @ref grammar::parse,
+        @ref parse_authority.
+*/
+constexpr implementation_defined::authority_rule_t authority_rule{};
 #endif
 
 } // urls

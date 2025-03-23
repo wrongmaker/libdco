@@ -49,16 +49,18 @@ public:
 #ifdef _WIN32
     WaitForSingleObject(sem_, (DWORD)ms);
 #else
-    time_t rs = ms / 1000;
-    time_t rms = ms % 1000;
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
-    rms = rms * 1000000 + ts.tv_nsec;
-    rs = rms / 1000000000 + rs;
-    rms = rms % 1000000000;
-    ts.tv_sec += rs;
-    ts.tv_nsec = rms;
-    // printf("ms:%ld rs:%ld rms:%ld\n", ms, rs, rms);
+
+    // 将毫秒转换为纳秒并累加到当前时间
+    uint64_t timeout_ns = (uint64_t)ms * 1000000ULL;
+    uint64_t total_ns = (uint64_t)ts.tv_nsec + timeout_ns;
+
+    // 处理进位并更新timespec
+    ts.tv_sec += total_ns / 1000000000ULL;
+    ts.tv_nsec = total_ns % 1000000000ULL;
+
+    // 执行等待
     sem_timedwait(&sem_, &ts);
 #endif
   }

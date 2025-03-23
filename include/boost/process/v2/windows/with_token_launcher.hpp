@@ -29,7 +29,7 @@ struct with_token_launcher : default_launcher
   template<typename ExecutionContext, typename Args, typename ... Inits>
   auto operator()(ExecutionContext & context,
                   const typename std::enable_if<std::is_convertible<
-                             ExecutionContext&, BOOST_PROCESS_V2_ASIO_NAMESPACE::execution_context&>::value,
+                             ExecutionContext&, net::execution_context&>::value,
                              filesystem::path >::type & executable,
                   Args && args,
                   Inits && ... inits ) -> basic_process<typename ExecutionContext::executor_type>
@@ -38,7 +38,7 @@ struct with_token_launcher : default_launcher
       auto proc =  (*this)(context, ec, executable, std::forward<Args>(args), std::forward<Inits>(inits)...);
 
       if (ec)
-          asio::detail::throw_error(ec, "with_token_launcher");
+          v2::detail::throw_error(ec, "with_token_launcher");
 
       return proc;
   }
@@ -48,7 +48,7 @@ struct with_token_launcher : default_launcher
   auto operator()(ExecutionContext & context,
                      error_code & ec,
                      const typename std::enable_if<std::is_convertible<
-                             ExecutionContext&, BOOST_PROCESS_V2_ASIO_NAMESPACE::execution_context&>::value,
+                             ExecutionContext&, net::execution_context&>::value,
                              filesystem::path >::type & executable,
                      Args && args,
                      Inits && ... inits ) -> basic_process<typename ExecutionContext::executor_type>
@@ -59,8 +59,8 @@ struct with_token_launcher : default_launcher
   template<typename Executor, typename Args, typename ... Inits>
   auto operator()(Executor exec,
                      const typename std::enable_if<
-                             BOOST_PROCESS_V2_ASIO_NAMESPACE::execution::is_executor<Executor>::value ||
-                             BOOST_PROCESS_V2_ASIO_NAMESPACE::is_executor<Executor>::value,
+                             net::execution::is_executor<Executor>::value ||
+                             net::is_executor<Executor>::value,
                              filesystem::path >::type & executable,
                      Args && args,
                      Inits && ... inits ) -> basic_process<Executor>
@@ -69,7 +69,7 @@ struct with_token_launcher : default_launcher
       auto proc =  (*this)(std::move(exec), ec, executable, std::forward<Args>(args), std::forward<Inits>(inits)...);
 
       if (ec)
-          asio::detail::throw_error(ec, "with_token_launcher");
+          detail::throw_error(ec, "with_token_launcher");
 
       return proc;
   }
@@ -78,8 +78,8 @@ struct with_token_launcher : default_launcher
   auto operator()(Executor exec,
                      error_code & ec,
                      const typename std::enable_if<
-                             BOOST_PROCESS_V2_ASIO_NAMESPACE::execution::is_executor<Executor>::value || 
-                             BOOST_PROCESS_V2_ASIO_NAMESPACE::is_executor<Executor>::value,
+                             net::execution::is_executor<Executor>::value ||
+                             net::is_executor<Executor>::value,
                              filesystem::path >::type & executable,
                      Args && args,
                      Inits && ... inits ) -> basic_process<Executor>
@@ -106,7 +106,7 @@ struct with_token_launcher : default_launcher
 
     if (ok == 0)
     {
-      ec = detail::get_last_error();
+      BOOST_PROCESS_V2_ASSIGN_LAST_ERROR(ec);
       detail::on_error(*this, executable, command_line, ec, inits...);
 
       if (process_information.hProcess != INVALID_HANDLE_VALUE)

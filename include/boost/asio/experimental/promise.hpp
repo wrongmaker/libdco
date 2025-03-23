@@ -2,7 +2,7 @@
 // experimental/promise.hpp
 // ~~~~~~~~~~~~~~~~~~~~~~~~
 //
-// Copyright (c) 2021-2022 Klemens D. Morgenstern
+// Copyright (c) 2021-2023 Klemens D. Morgenstern
 //                         (klemens dot morgenstern at gmx dot net)
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
@@ -85,8 +85,9 @@ struct promise_value_type<>
  * awaitable<void> read_write_some(boost::asio::ip::tcp::socket & sock,
  *     boost::asio::mutable_buffer read_buf, boost::asio::const_buffer to_write)
  * {
- *   auto p = boost::asio::async_read(read_buf, boost::asio::use_awaitable);
- *   co_await boost::asio::async_write_some(to_write, boost::asio::deferred);
+ *   auto p = boost::asio::async_read(read_buf,
+ *       boost::asio::experimental::use_promise);
+ *   co_await boost::asio::async_write_some(to_write);
  *   co_await p;
  * }
  * @endcode
@@ -139,7 +140,6 @@ struct promise<void(Ts...), Executor,  Allocator>
    * It is safe to destruct a promise of a promise that didn't complete.
    */
   ~promise() { cancel(); }
-
 
 private:
 #if !defined(GENERATING_DOCUMENTATION)

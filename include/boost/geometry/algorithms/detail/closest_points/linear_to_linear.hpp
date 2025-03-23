@@ -35,7 +35,7 @@ struct linear_to_linear
     template <typename Linear1, typename Linear2, typename Segment, typename Strategies>
     static inline void apply(Linear1 const& linear1,
                              Linear2 const& linear2,
-                             Segment& shortest_seg,                       
+                             Segment& shortest_seg,
                              Strategies const& strategies,
                              bool = false)
     {
@@ -43,7 +43,7 @@ struct linear_to_linear
         {
             dispatch::closest_points
                 <
-                    typename point_type<Linear1>::type,
+                    point_type_t<Linear1>,
                     Linear2
                 >::apply(*points_begin(linear1), linear2, shortest_seg, strategies);
             return;
@@ -53,7 +53,7 @@ struct linear_to_linear
         {
             dispatch::closest_points
                 <
-                    typename point_type<Linear2>::type,
+                    point_type_t<Linear2>,
                     Linear1
                 >::apply(*points_begin(linear2), linear1, shortest_seg, strategies);
             detail::closest_points::swap_segment_points::apply(shortest_seg);
@@ -86,12 +86,12 @@ struct segment_to_linear
     template <typename Segment, typename Linear, typename OutSegment, typename Strategies>
     static inline void apply(Segment const& segment,
                              Linear const& linear,
-                             OutSegment& shortest_seg,                       
+                             OutSegment& shortest_seg,
                              Strategies const& strategies,
                              bool = false)
     {
         using linestring_type = geometry::model::linestring
-            <typename point_type<Segment>::type>;
+            <point_type_t<Segment>>;
         linestring_type linestring;
         convert(segment, linestring);
         linear_to_linear::apply(linestring, linear, shortest_seg, strategies);
@@ -103,7 +103,7 @@ struct linear_to_segment
     template <typename Linear, typename Segment, typename OutSegment, typename Strategies>
     static inline void apply(Linear const& linear,
                              Segment const& segment,
-                             OutSegment& shortest_seg,                       
+                             OutSegment& shortest_seg,
                              Strategies const& strategies,
                              bool = false)
     {
@@ -124,7 +124,7 @@ template <typename Linear1, typename Linear2>
 struct closest_points
     <
         Linear1, Linear2,
-        linear_tag, linear_tag, 
+        linear_tag, linear_tag,
         false
     > : detail::closest_points::linear_to_linear
 {};
@@ -132,7 +132,7 @@ struct closest_points
 template <typename Segment, typename Linear>
 struct closest_points
     <
-        Segment, Linear, 
+        Segment, Linear,
         segment_tag, linear_tag,
         false
     > : detail::closest_points::segment_to_linear
@@ -141,7 +141,7 @@ struct closest_points
 template <typename Linear, typename Segment>
 struct closest_points
     <
-        Linear, Segment, 
+        Linear, Segment,
         linear_tag, segment_tag,
         false
     > : detail::closest_points::linear_to_segment

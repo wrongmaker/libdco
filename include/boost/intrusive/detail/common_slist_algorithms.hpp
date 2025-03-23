@@ -22,9 +22,9 @@
 #endif
 
 #include <boost/intrusive/intrusive_fwd.hpp>
+#include <boost/intrusive/detail/workaround.hpp>
 #include <boost/intrusive/detail/assert.hpp>
 #include <boost/intrusive/detail/algo_type.hpp>
-#include <boost/core/no_exceptions_support.hpp>
 #include <cstddef>
 
 namespace boost {
@@ -52,7 +52,7 @@ class common_slist_algorithms
       return p;
    }
 
-   BOOST_INTRUSIVE_FORCEINLINE static void init(node_ptr this_node) BOOST_NOEXCEPT
+   inline static void init(node_ptr this_node) BOOST_NOEXCEPT
    {  NodeTraits::set_next(this_node, node_ptr());  }
 
    static bool unique(const_node_ptr this_node) BOOST_NOEXCEPT
@@ -61,16 +61,16 @@ class common_slist_algorithms
       return !next || next == this_node;
    }
 
-   BOOST_INTRUSIVE_FORCEINLINE static bool inited(const_node_ptr this_node) BOOST_NOEXCEPT
+   inline static bool inited(const_node_ptr this_node) BOOST_NOEXCEPT
    {  return !NodeTraits::get_next(this_node); }
 
-   BOOST_INTRUSIVE_FORCEINLINE static void unlink_after(node_ptr prev_node) BOOST_NOEXCEPT
+   inline static void unlink_after(node_ptr prev_node) BOOST_NOEXCEPT
    {
       const_node_ptr this_node(NodeTraits::get_next(prev_node));
       NodeTraits::set_next(prev_node, NodeTraits::get_next(this_node));
    }
 
-   BOOST_INTRUSIVE_FORCEINLINE static void unlink_after(node_ptr prev_node, node_ptr last_node) BOOST_NOEXCEPT
+   inline static void unlink_after(node_ptr prev_node, node_ptr last_node) BOOST_NOEXCEPT
    {  NodeTraits::set_next(prev_node, last_node);  }
 
    static void link_after(node_ptr prev_node, node_ptr this_node) BOOST_NOEXCEPT
@@ -126,7 +126,7 @@ class common_slist_algorithms
             new_f = cur;
             bcur = cur;
             cur  = node_traits::get_next(cur);
-            BOOST_TRY{
+            BOOST_INTRUSIVE_TRY{
                //Main loop
                while(cur != end){
                   if(pred(cur)){ //Might throw
@@ -145,11 +145,11 @@ class common_slist_algorithms
                   }
                }
             }
-            BOOST_CATCH(...){
+            BOOST_INTRUSIVE_CATCH(...){
                node_traits::set_next(last_to_remove, new_f);
-               BOOST_RETHROW;
+               BOOST_INTRUSIVE_RETHROW;
             }
-            BOOST_CATCH_END
+            BOOST_INTRUSIVE_CATCH_END
             node_traits::set_next(last_to_remove, new_f);
             break;
          }
@@ -216,7 +216,7 @@ class common_slist_algorithms
    //!
    //! <b>Throws</b>: Nothing.
    template<class Disposer>
-   BOOST_INTRUSIVE_FORCEINLINE static void unlink_after_and_dispose(node_ptr bb, Disposer disposer) BOOST_NOEXCEPT
+   inline static void unlink_after_and_dispose(node_ptr bb, Disposer disposer) BOOST_NOEXCEPT
    {
       node_ptr i = node_traits::get_next(bb);
       node_traits::set_next(bb, node_traits::get_next(i));

@@ -1,5 +1,5 @@
 /* Proposed SG14 status_code
-(C) 2018-2022 Niall Douglas <http://www.nedproductions.biz/> (5 commits)
+(C) 2018-2024 Niall Douglas <http://www.nedproductions.biz/> (5 commits)
 File Created: June 2018
 
 
@@ -44,7 +44,8 @@ BOOST_OUTCOME_SYSTEM_ERROR2_NAMESPACE_BEGIN
 /*! A utility function which returns the closest matching system_code to a supplied
 exception ptr.
 */
-inline system_code system_code_from_exception(std::exception_ptr &&ep = std::current_exception(), system_code not_matched = generic_code(errc::resource_unavailable_try_again)) noexcept
+inline system_code system_code_from_exception(std::exception_ptr &&ep = std::current_exception(),
+                                              system_code not_matched = generic_code(errc::resource_unavailable_try_again)) noexcept
 {
   if(!ep)
   {
@@ -60,7 +61,7 @@ inline system_code system_code_from_exception(std::exception_ptr &&ep = std::cur
     {
       try
       {
-        system_code erased(e.code());
+        system_code erased(in_place, e.code());
         if(!erased.empty())
         {
           return erased;

@@ -1,218 +1,81 @@
 #include "libdco/co/cowaitque.h"
 
+#include "libdco/co/all.h"
+#include "libdco/co/cofutex.h"
 #include "libdco/util/cotools.h"
+#include <cstddef>
 
 using namespace dco;
 
-cowaitque::cowaitque(coschedule *sche)
-    : ptr_sche_(sche)
-#if DCO_MULT_THREAD
-      ,
-      mtx_ BOOST_DETAIL_SPINLOCK_INIT
-#endif
-{
+cowaitque_mt::cowaitque_mt(coschedule *sche) : ptr_sche_(sche), stop_(false) {}
+
+cowaitque_mt::~cowaitque_mt() {
+  BOOST_ASSERT(!ctx_que_.pop(nullptr)); // 这时候应该是没有东西的
 }
 
-cowaitque::~cowaitque() {
-  BOOST_ASSERT(ctx_que_.front() == nullptr); // 这时候应该是没有东西的
-}
-
-void cowaitque::wait_set(waitnode &node) {
-#if DCO_MULT_THREAD
-  std::lock_guard<boost::detail::spinlock> lock_mtx(mtx_);
-#endif
-  ctx_que_.push_back(&node);
-}
-
-void cowaitque::wait_remove(waitnode &node) {
-#if DCO_MULT_THREAD
-  std::lock_guard<boost::detail::spinlock> lock_mtx(mtx_);
-#endif
-  ctx_que_.remove(&node);
-}
-
-#if DCO_MULT_THREAD
-int cowaitque::wait(std::unique_lock<std::mutex> &lock,
-                    const std::function<bool(coctx *)> &cond) {
-  coctx *ctx = ptr_sche_->dco_curr_ctx();
-  BOOST_ASSERT(ctx != nullptr);
-  waitnode node(ctx);
-  while (!cond(ctx)) {
-    if (0 != ptr_sche_->dco_yield(ctx, [this, &node, &cond, &lock](coctx *ctx) {
-          {
-            std::lock_guard<boost::detail::spinlock> lock_mtx(mtx_);
-            ctx_que_.push_back(&node);
-          }
-          // 等加入在解锁 防止略过唤醒
-          lock.mutex()->unlock(); // unlock
-        })) {
-      // await fail un call callback
-      // do not need relock
-      BOOST_ASSERT(false); // 通知加锁失败
-      return -1;
-    }
-    lock.mutex()->lock(); // relock
-  }
-  return 1; // 被打断了或者条件为真
-}
-
-int cowaitque::wait_for(std::unique_lock<std::mutex> &lock, time_t ms,
-                        const std::function<bool(coctx *)> &cond) {
-  time_t ms_until = cotools::ms2until(ms);
-  return wait_until(lock, ms_until, cond);
-}
-
-int cowaitque::wait_until(std::unique_lock<std::mutex> &lock, time_t ms_until,
-                          const std::function<bool(coctx *)> &cond) {
-  coctx *ctx = ptr_sche_->dco_curr_ctx();
-  BOOST_ASSERT(ctx != nullptr);
-  waitnode node(ctx);
-  while (!cond(ctx)) {
-    int sleep_res = ptr_sche_->dco_sleep_until(
-        ctx, ms_until, [this, &node, &cond, &lock](coctx *ctx) {
-          {
-            std::lock_guard<boost::detail::spinlock> lock_mtx(mtx_);
-            ctx_que_.push_back(&node);
-          }
-          // 等加入在解锁 防止略过唤醒
-          lock.mutex()->unlock(); // unlock
-        });
-    if (0 > sleep_res) {
-      // await fail un call callback
-      // do not need relock
-      return -1; // 挂起失败
-    }
-    if (0 == sleep_res) {
-      {
-        std::lock_guard<boost::detail::spinlock> lock_mtx(mtx_);
-        ctx_que_.remove(&node);
-      }
-      // await success need relock
-      lock.mutex()->lock();
-      return 0; // 超时
-    }
-    lock.mutex()->lock(); // relock
-  }
-  return 1; // 被打断了或者条件为真
-}
-
-#else
-int cowaitque::wait(const std::function<bool(coctx *)> &cond) {
-  coctx *ctx = ptr_sche_->dco_curr_ctx();
-  BOOST_ASSERT(ctx != nullptr);
-  waitnode node(ctx);
-  while (!cond(ctx)) {
-    if (0 != ptr_sche_->dco_yield(ctx, [this, &node, &cond](coctx *ctx) {
-          ctx_que_.push_back(&node);
-        })) {
-      return -1;
-    }
-  }
-  return 1; // 被打断了或者条件为真
-}
-
-int cowaitque::wait_for(time_t ms, const std::function<bool(coctx *)> &cond) {
-  time_t ms_until = cotools::ms2until(ms);
-  return wait_until(ms_until, cond);
-}
-
-int cowaitque::wait_until(time_t ms_until,
-                          const std::function<bool(coctx *)> &cond) {
-  coctx *ctx = ptr_sche_->dco_curr_ctx();
-  BOOST_ASSERT(ctx != nullptr);
-  waitnode node(ctx);
-  while (!cond(ctx)) {
-    int sleep_res = ptr_sche_->dco_sleep_until(
-        ctx, ms_until,
-        [this, &node, &cond](coctx *ctx) { ctx_que_.push_back(&node); });
-    if (0 > sleep_res) {
-      return -1; // 挂起失败
-    }
-    if (0 == sleep_res) {
-      ctx_que_.remove(&node);
-      return 0; // 超时
-    }
-  }
-  return 1; // 被打断了或者条件为真
-}
-
-#endif
-
-int cowaitque::notify() {
-  coctx *ctx = nullptr;
-  {
-#if DCO_MULT_THREAD
-    std::lock_guard<boost::detail::spinlock> lock_mtx(mtx_);
-#endif
-    waitnode *node = ctx_que_.front();
-    if (node == nullptr)
-      return -1;
-    ctx = node->ctx_;
-    ctx_que_.pop_front();
-  }
-  ptr_sche_->dco_resume(ctx);
+int cowaitque_mt::wait_set(waitnode &node) {
+  if (stop_.load())
+    return -2;
+  ctx_que_.push(&node);
   return 1;
 }
 
-int cowaitque::notify_all() {
-  int times = 0;
-  for (;;) {
-    auto ret = notify();
-    if (ret != 1)
-      break;
-    ++times;
-  }
-  return times;
-}
+void cowaitque_mt::wait_remove(waitnode &node) { ctx_que_.remove(&node); }
 
-cowaitquecas::cowaitquecas(coschedule *sche) : ptr_sche_(sche) {}
+bool cowaitque_mt::empty() { return ctx_que_.empty(); }
 
-cowaitquecas::~cowaitquecas() {
-  coctx *ctx = nullptr;
-  BOOST_ASSERT(ctx_que_.pop(ctx) == false);
-}
-
-#if DCO_MULT_THREAD
-int cowaitquecas::wait(std::unique_lock<std::mutex> &lock,
-                       const std::function<bool(coctx *)> &cond) {
+int cowaitque_mt::wait(void *payload,
+                       const cowaitque_mt::check_func &check_call,
+                       const cowaitque_mt::cond_func &cond_call) {
   coctx *ctx = ptr_sche_->dco_curr_ctx();
   BOOST_ASSERT(ctx != nullptr);
-  while (!cond(ctx)) {
-    if (0 != ptr_sche_->dco_yield(ctx, [this, &cond, &lock](coctx *ctx) {
-          ctx_que_.push(ctx);
-          lock.mutex()->unlock(); // unlock
-        })) {
-      // await fail un call callback
-      // do not need relock
-      BOOST_ASSERT(false);  // 通知加锁失败
-      return -1;
-    }
-    lock.mutex()->lock(); // relock
+  waitnode node(ctx, payload);
+  while (!node.unpack_ && !cond_call(payload)) {
+    int res = dco_futex::dco_wait(ptr_sche_, ctx_que_, node, stop_, check_call);
+    if (-2 == res)
+      return res;
   }
   return 1; // 被打断了或者条件为真
 }
-#else
-int cowaitquecas::wait(const std::function<bool(coctx *)> &cond) {
+
+int cowaitque_mt::wait_for(time_t ms, void *payload,
+                           const check_func &check_call,
+                           const cond_func &cond_call) {
+  time_t ms_until = cotools::ms2until(ms);
+  return wait_until(ms_until, payload, check_call, cond_call);
+}
+
+int cowaitque_mt::wait_until(time_t ms_until, void *payload,
+                             const check_func &check_call,
+                             const cond_func &cond_call) {
   coctx *ctx = ptr_sche_->dco_curr_ctx();
   BOOST_ASSERT(ctx != nullptr);
-  while (!cond(ctx)) {
-    if (0 != ptr_sche_->dco_yield(
-                 ctx, [this, &cond](coctx *ctx) { ctx_que_.push(ctx); })) {
-      return -1;
-    }
+  waitnode node(ctx, payload);
+  while (!node.unpack_ && !cond_call(payload)) {
+    int res = dco_futex::dco_wait_until(ptr_sche_, ms_until, ctx_que_, node,
+                                        stop_, check_call);
+    if (-2 == res)
+      return res;
+    if (0 == res && !node.unpack_)
+      return res; // 如果unpack了说明数据已经传递过了，即使超时也算成功
   }
   return 1; // 被打断了或者条件为真
 }
-#endif
 
-void cowaitquecas::notify() {
-  coctx *ctx = nullptr;
-  ctx_que_.pop(ctx);
-  ptr_sche_->dco_resume(ctx);
+int cowaitque_mt::call(const unpack_func &node_call) {
+  if (node_call) {
+    return dco_futex::dco_call<cowaitque_mt::waitnode>(
+        ptr_sche_, ctx_que_, [&node_call](waitnode *node) -> bool {
+          node->unpack_ = true;
+          node_call(node->payload_);
+          return true;
+        });
+  }
+  return dco_futex::dco_notify(ptr_sche_, ctx_que_);
 }
 
-void cowaitquecas::notify_all() {
-  coctx *ctx = nullptr;
-  while (ctx_que_.pop(ctx))
-    ptr_sche_->dco_resume(ctx);
+void cowaitque_mt::close() {
+  stop_.store(true);
+  // 唤醒所有
+  dco_futex::dco_notify_all(ptr_sche_, ctx_que_);
 }

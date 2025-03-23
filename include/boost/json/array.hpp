@@ -11,15 +11,17 @@
 #define BOOST_JSON_ARRAY_HPP
 
 #include <boost/json/detail/config.hpp>
+#include <boost/json/detail/array.hpp>
 #include <boost/json/kind.hpp>
 #include <boost/json/pilfer.hpp>
 #include <boost/json/storage_ptr.hpp>
-#include <boost/json/detail/array.hpp>
+#include <boost/system/result.hpp>
 #include <cstdlib>
 #include <initializer_list>
 #include <iterator>
 
-BOOST_JSON_NS_BEGIN
+namespace boost {
+namespace json {
 
 #ifndef BOOST_JSON_DOCS
 class value;
@@ -116,16 +118,8 @@ class array
     array(detail::unchecked_array&& ua);
 
 public:
-    /** The type of <em>Allocator</em> returned by @ref get_allocator
-
-        This type is a @ref polymorphic_allocator.
-    */
-#ifdef BOOST_JSON_DOCS
-    // VFALCO doc toolchain renders this incorrectly
-    using allocator_type = __see_below__;
-#else
-    using allocator_type = polymorphic_allocator<value>;
-#endif
+    /// Associated [Allocator](https://en.cppreference.com/w/cpp/named_req/Allocator)
+    using allocator_type = container::pmr::polymorphic_allocator<value>;
 
     /// The type used to represent unsigned integers
     using size_type = std::size_t;
@@ -168,7 +162,7 @@ public:
 
         The destructor for each element is called if needed,
         any used memory is deallocated, and shared ownership
-        of the @ref memory_resource is released.
+        of the `boost::container::pmr::memory_resource` is released.
 
         @par Complexity
         Constant, or linear in @ref size().
@@ -184,13 +178,15 @@ public:
     /** Constructor.
 
         The constructed array is empty with zero
-        capacity, using the default memory resource.
+        capacity, using the [default memory resource].
 
         @par Complexity
         Constant.
 
         @par Exception Safety
         No-throw guarantee.
+
+        [default memory resource]: json/allocators/storage_ptr.html#json.allocators.storage_ptr.default_memory_resource
     */
     array() noexcept
         : t_(&empty_)
@@ -208,7 +204,7 @@ public:
         @par Exception Safety
         No-throw guarantee.
 
-        @param sp A pointer to the @ref memory_resource
+        @param sp A pointer to the `boost::container::pmr::memory_resource`
         to use. The container will acquire shared
         ownership of the memory resource.
     */
@@ -237,7 +233,7 @@ public:
 
         @param v The value to be inserted.
 
-        @param sp A pointer to the @ref memory_resource
+        @param sp A pointer to the `boost::container::pmr::memory_resource`
         to use. The container will acquire shared
         ownership of the memory resource.
     */
@@ -261,7 +257,7 @@ public:
 
         @param count The number of nulls to insert.
 
-        @param sp A pointer to the @ref memory_resource
+        @param sp A pointer to the `boost::container::pmr::memory_resource`
         to use. The container will acquire shared
         ownership of the memory resource.
     */
@@ -279,7 +275,7 @@ public:
         @par Constraints
 
         @code
-        std::is_constructible_v<value, std::iterator_traits<InputIt>::value_type>
+        std::is_constructible_v<value, std::iterator_traits<InputIt>::reference>
         @endcode
 
         @par Complexity
@@ -296,7 +292,7 @@ public:
         @param last An input iterator pointing to the end
         of the range.
 
-        @param sp A pointer to the @ref memory_resource
+        @param sp A pointer to the `boost::container::pmr::memory_resource`
         to use. The container will acquire shared
         ownership of the memory resource.
 
@@ -309,7 +305,7 @@ public:
         ,class = typename std::enable_if<
             std::is_constructible<value,
                 typename std::iterator_traits<
-                    InputIt>::value_type>::value>::type
+                    InputIt>::reference>::value>::type
     #endif
     >
     array(
@@ -347,7 +343,7 @@ public:
 
         @param other The array to copy
 
-        @param sp A pointer to the @ref memory_resource
+        @param sp A pointer to the `boost::container::pmr::memory_resource`
         to use. The container will acquire shared
         ownership of the memory resource.
     */
@@ -439,7 +435,7 @@ public:
 
         @param other The container to move
 
-        @param sp A pointer to the @ref memory_resource
+        @param sp A pointer to the `boost::container::pmr::memory_resource`
         to use. The container will acquire shared
         ownership of the memory resource.
     */
@@ -463,7 +459,7 @@ public:
 
         @param init The initializer list to insert
 
-        @param sp A pointer to the @ref memory_resource
+        @param sp A pointer to the `boost::container::pmr::memory_resource`
         to use. The container will acquire shared
         ownership of the memory resource.
     */
@@ -544,10 +540,10 @@ public:
 
     //------------------------------------------------------
 
-    /** Return the associated @ref memory_resource
+    /** Return the associated memory resource.
 
-        This returns the @ref memory_resource used by
-        the container.
+        This function returns the `boost::container::pmr::memory_resource` used
+        by the container.
 
         @par Complexity
         Constant.
@@ -561,11 +557,10 @@ public:
         return sp_;
     }
 
-    /** Return the associated @ref memory_resource
+    /** Return the associated allocator.
 
-        This function returns an instance of
-        @ref polymorphic_allocator constructed from the
-        associated @ref memory_resource.
+        This function returns an instance of @ref allocator_type constructed
+        from the associated `boost::container::pmr::memory_resource`.
 
         @par Complexity
         Constant.
@@ -587,31 +582,64 @@ public:
 
     /** Access an element, with bounds checking.
 
+        Returns `boost::system::result` containing a reference to the element
+        specified at location `pos`, if `pos` is within the range of the
+        container. Otherwise the result contains an `error_code`.
+
+        @par Exception Safety
+        No-throw guarantee.
+
+        @param pos A zero-based index.
+
+        @par Complexity
+        Constant.
+    */
+    /** @{ */
+    BOOST_JSON_DECL
+    system::result<value&>
+    try_at(std::size_t pos) noexcept;
+
+    BOOST_JSON_DECL
+    system::result<value const&>
+    try_at(std::size_t pos) const noexcept;
+    /** @} */
+
+    /** Access an element, with bounds checking.
+
         Returns a reference to the element specified at
         location `pos`, with bounds checking. If `pos` is
         not within the range of the container, an exception
-        of type `std::out_of_range` is thrown.
+        of type `boost::system::system_error` is thrown.
 
         @par Complexity
         Constant.
 
         @param pos A zero-based index.
 
-        @throw std::out_of_range `pos >= size()`
+        @param loc `source_location` to use in thrown exception; the source
+            location of the call site by default.
+
+        @throw `boost::system::system_error` `pos >= size()`.
     */
-    /* @{ */
+    /** @{ */
     inline
     value&
-    at(std::size_t pos) &;
+    at(
+        std::size_t pos,
+        source_location const& loc = BOOST_CURRENT_LOCATION) &;
 
     inline
     value&&
-    at(std::size_t pos) &&;
+    at(
+        std::size_t pos,
+        source_location const& loc = BOOST_CURRENT_LOCATION) &&;
 
-    inline
+    BOOST_JSON_DECL
     value const&
-    at(std::size_t pos) const&;
-    /* @} */
+    at(
+        std::size_t pos,
+        source_location const& loc = BOOST_CURRENT_LOCATION) const&;
+    /** @} */
 
     /** Access an element.
 
@@ -626,7 +654,7 @@ public:
 
         @param pos A zero-based index
     */
-    /* @{ */
+    /** @{ */
     inline
     value&
     operator[](std::size_t pos) & noexcept;
@@ -638,7 +666,7 @@ public:
     inline
     value const&
     operator[](std::size_t pos) const& noexcept;
-    /* @} */
+    /** @} */
 
     /** Access the first element.
 
@@ -650,7 +678,7 @@ public:
         @par Complexity
         Constant.
     */
-    /* @{ */
+    /** @{ */
     inline
     value&
     front() & noexcept;
@@ -662,7 +690,7 @@ public:
     inline
     value const&
     front() const& noexcept;
-    /* @} */
+    /** @} */
 
     /** Access the last element.
 
@@ -674,7 +702,7 @@ public:
         @par Complexity
         Constant.
     */
-    /* @{ */
+    /** @{ */
     inline
     value&
     back() & noexcept;
@@ -686,7 +714,7 @@ public:
     inline
     value const&
     back() const& noexcept;
-    /* @} */
+    /** @} */
 
     /** Access the underlying array directly.
 
@@ -1067,7 +1095,7 @@ public:
 
         @param new_capacity The new capacity of the array.
 
-        @throw std::length_error `new_capacity > max_size()`
+        @throw `boost::system::system_error` `new_capacity > max_size()`.
     */
     inline
     void
@@ -1138,7 +1166,7 @@ public:
         be inserted. This may be the @ref end() iterator.
 
         @param v The value to insert. A copy will be made
-        using container's associated @ref memory_resource.
+        using container's associated `boost::container::pmr::memory_resource`.
 
         @return An iterator to the inserted value
     */
@@ -1170,7 +1198,8 @@ public:
 
         @param v The value to insert. Ownership of the
         value will be transferred via move construction,
-        using the container's associated @ref memory_resource.
+        using the container's
+        associated `boost::container::pmr::memory_resource`.
 
         @return An iterator to the inserted value
     */
@@ -1203,7 +1232,8 @@ public:
         @param count The number of copies to insert.
 
         @param v The value to insert. Copies will be made
-        using container's associated @ref memory_resource.
+        using the container's
+        associated `boost::container::pmr::memory_resource`.
 
         @return An iterator to the first inserted value,
         or `pos` if `count == 0`.
@@ -1236,7 +1266,7 @@ public:
 
         @par Mandates
         @code
-        std::is_constructible_v<value, std::iterator_traits<InputIt>::value_type>
+        std::is_constructible_v<value, std::iterator_traits<InputIt>::reference>
         @endcode
 
         @par Complexity
@@ -1267,7 +1297,7 @@ public:
         ,class = typename std::enable_if<
             std::is_constructible<value,
                 typename std::iterator_traits<
-                    InputIt>::value_type>::value>::type
+                    InputIt>::reference>::value>::type
     #endif
     >
     iterator
@@ -1403,8 +1433,8 @@ public:
         Strong guarantee.
         Calls to `memory_resource::allocate` may throw.
 
-        @param v The value to insert. A copy will be made
-        using container's associated @ref memory_resource.
+        @param v The value to insert. A copy will be made using the container's
+        associated `boost::container::pmr::memory_resource`.
     */
     BOOST_JSON_DECL
     void
@@ -1426,9 +1456,9 @@ public:
         Strong guarantee.
         Calls to `memory_resource::allocate` may throw.
 
-        @param v The value to insert. Ownership of the
-        value will be transferred via move construction,
-        using the container's associated @ref memory_resource.
+        @param v The value to insert. Ownership of the value will be
+        transferred via move construction, using the container's
+        associated `boost::container::pmr::memory_resource`.
     */
     BOOST_JSON_DECL
     void
@@ -1540,8 +1570,8 @@ public:
     /** Swap the contents.
 
         Exchanges the contents of this array with another
-        array. Ownership of the respective @ref memory_resource
-        objects is not transferred.
+        array. Ownership of the respective
+        `boost::container::pmr::memory_resource` objects is not transferred.
 
         @li If `*other.storage() == *this->storage()`,
         ownership of the underlying memory is swapped in
@@ -1569,9 +1599,9 @@ public:
 
     /** Exchange the given values.
 
-        Exchanges the contents of the array `lhs` with
-        another array `rhs`. Ownership of the respective
-        @ref memory_resource objects is not transferred.
+        Exchanges the contents of the array `lhs` with another array `rhs`.
+        Ownership of the respective `boost::container::pmr::memory_resource`
+        objects is not transferred.
 
         @li If `*lhs.storage() == *rhs.storage()`,
         ownership of the underlying memory is swapped in
@@ -1739,7 +1769,8 @@ private:
     equal(array const& other) const noexcept;
 };
 
-BOOST_JSON_NS_END
+} // namespace json
+} // namespace boost
 
 // std::hash specialization
 #ifndef BOOST_JSON_DOCS

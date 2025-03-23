@@ -36,7 +36,7 @@ recycled<T>::
         delete it;
         it = next;
     }
-    detail::recycled_remove(
+    see_below::recycled_remove(
         sizeof(U) * n);
 }
 
@@ -48,14 +48,16 @@ acquire() ->
 {
     U* p;
     {
+#if !defined(BOOST_URL_DISABLE_THREADS)
         std::lock_guard<
             std::mutex> lock(m_);
+#endif
         p = head_;
         if(p)
         {
             // reuse
             head_ = head_->next;
-            detail::recycled_remove(
+            see_below::recycled_remove(
                 sizeof(U));
             ++p->refs;
         }
@@ -75,11 +77,15 @@ release(U* u) noexcept
 {
     if(--u->refs != 0)
         return;
-    m_.lock();
-    u->next = head_;
-    head_ = u;
-    m_.unlock();
-    detail::recycled_add(
+    {
+#if !defined(BOOST_URL_DISABLE_THREADS)
+        std::lock_guard<
+            std::mutex> lock(m_);
+#endif
+        u->next = head_;
+        head_ = u;
+    }
+    see_below::recycled_add(
         sizeof(U));
 }
 

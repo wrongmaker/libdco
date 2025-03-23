@@ -2,13 +2,17 @@
 #include "libdco/co/coawaitable.hpp"
 #include "libdco/co/cochannel.hpp"
 #include "libdco/co/cocondvariable.h"
+#include "libdco/co/coctx.h"
+#include "libdco/co/cofutex.h"
 #include "libdco/co/cogenerator.hpp"
 #include "libdco/co/comutex.h"
 #include "libdco/co/comutexshared.h"
 #include "libdco/co/coschedule.h"
 #include "libdco/co/coselect.h"
 #include "libdco/co/cosemaphore.h"
+#include "libdco/util/conolist.hpp"
 #include "libdco/util/cosingleton.hpp"
+#include <functional>
 
 #define __dco_sche dco::cosingleton<dco::coschedule>::instance()
 #define __dco_sche_ptr __dco_sche.get()
@@ -31,20 +35,14 @@ public:
   dco_comutex() : comutex(__dco_sche_ptr) {}
 };
 
-class dco_comutex_seq : public comutex_seq {
-public:
-  dco_comutex_seq() : comutex_seq(__dco_sche_ptr) {}
-};
-
 class dco_cocond : public cocondvariable {
 public:
   dco_cocond() : cocondvariable(__dco_sche_ptr) {}
 };
 
-template <class T> class dco_cochan : public cochannel<T> {
+template <class T, int N> class dco_cochan : public cochannel<T, N> {
 public:
-  dco_cochan() : cochannel<T>(__dco_sche_ptr) {}             // 无缓冲
-  dco_cochan(int max) : cochannel<T>(__dco_sche_ptr, max) {} // 带缓冲
+  dco_cochan() : cochannel<T, N>(__dco_sche_ptr) {}
 };
 
 class dco_comutex_shared : public comutexshared {
@@ -66,8 +64,12 @@ public:
 
 class dco_cosem : public cosemaphore {
 public:
-  dco_cosem(int def, int max = INT_MAX)
-      : cosemaphore(__dco_sche_ptr, def, max) {}
+  dco_cosem(int def = 0) : cosemaphore(__dco_sche_ptr, def) {}
+};
+
+class dco_cosem_tm : public cosemaphore_tm {
+public:
+  dco_cosem_tm(int def = 0) : cosemaphore_tm(__dco_sche_ptr, def) {}
 };
 
 template <class T> class dco_coobject : public coobject<T> {
@@ -82,56 +84,56 @@ public:
   virtual ~dco_coobject() {}
 };
 
-template <class T> struct dco_case_wait {
-  dco_cochan<T> *chan_;
-  T &t_;
-  dco::coselect &select_;
-  dco_case_wait(dco_cochan<T> *chan, T &t, dco::coselect &select)
-      : chan_(chan), t_(t), select_(select) {}
-  dco_case_wait(dco_cochan<T> &chan, T &t, dco::coselect &select)
-      : chan_(std::addressof(chan)), t_(t), select_(select) {}
+// template <class T, int N> struct dco_case_wait {
+//   dco_cochan<T, N> *chan_;
+//   T &t_;
+//   dco::coselect &select_;
+//   dco_case_wait(dco_cochan<T, N> *chan, T &t, dco::coselect &select)
+//       : chan_(chan), t_(t), select_(select) {}
+//   dco_case_wait(dco_cochan<T, N> &chan, T &t, dco::coselect &select)
+//       : chan_(std::addressof(chan)), t_(t), select_(select) {}
 
-  // recv wait
-  void operator-(const std::function<void(int)> &func) {
-    select_.wait_case(chan_, t_, func);
-  }
-};
+//   // recv wait
+//   void operator-(const std::function<void(int)> &func) {
+//     select_.wait_case(chan_, t_, func);
+//   }
+// };
 
-template <class T> struct dco_case_post {
-  dco_cochan<T> *chan_;
-  T &t_;
-  dco::coselect &select_;
-  dco_case_post(dco_cochan<T> *chan, T &t, dco::coselect &select)
-      : chan_(chan), t_(t), select_(select) {}
-  dco_case_post(dco_cochan<T> &chan, T &t, dco::coselect &select)
-      : chan_(std::addressof(chan)), t_(t), select_(select) {}
+// template <class T, int N> struct dco_case_post {
+//   dco_cochan<T, N> *chan_;
+//   T &t_;
+//   dco::coselect &select_;
+//   dco_case_post(dco_cochan<T, N> *chan, T &t, dco::coselect &select)
+//       : chan_(chan), t_(t), select_(select) {}
+//   dco_case_post(dco_cochan<T, N> &chan, T &t, dco::coselect &select)
+//       : chan_(std::addressof(chan)), t_(t), select_(select) {}
 
-  // send post
-  void operator-(const std::function<void(int)> &func) {
-    select_.post_case(chan_, t_, func);
-  }
-};
+//   // send post
+//   void operator-(const std::function<void(int)> &func) {
+//     select_.post_case(chan_, t_, func);
+//   }
+// };
 
-struct dco_case_timeout {
-  time_t ms_;
-  dco::coselect &select_;
+// struct dco_case_timeout {
+//   time_t ms_;
+//   dco::coselect &select_;
 
-  dco_case_timeout(time_t ms, dco::coselect &select)
-      : ms_(ms), select_(select) {}
-  // timeout
-  void operator-(const std::function<void(int)> &func) {
-    select_.timeout_case(ms_, func);
-  }
-};
+//   dco_case_timeout(time_t ms, dco::coselect &select)
+//       : ms_(ms), select_(select) {}
+//   // timeout
+//   void operator-(const std::function<void(int)> &func) {
+//     select_.timeout_case(ms_, func);
+//   }
+// };
 
-struct dco_case_default {
-  dco::coselect &select_;
-  dco_case_default(dco::coselect &select) : select_(select) {}
-  // default
-  void operator-(const std::function<void()> &func) {
-    select_.default_case(func);
-  }
-};
+// struct dco_case_default {
+//   dco::coselect &select_;
+//   dco_case_default(dco::coselect &select) : select_(select) {}
+//   // default
+//   void operator-(const std::function<void()> &func) {
+//     select_.default_case(func);
+//   }
+// };
 
 struct dco_coyield {
   void operator=(const std::function<void(coctx *)> &func) {

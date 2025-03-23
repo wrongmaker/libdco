@@ -20,9 +20,8 @@
 #define BOOST_GEOMETRY_ALGORITHMS_DETAIL_EQUALS_COLLECT_VECTORS_HPP
 
 
-#include <boost/numeric/conversion/cast.hpp>
+#include <boost/range/size.hpp>
 
-#include <boost/geometry/algorithms/detail/interior_iterator.hpp>
 #include <boost/geometry/algorithms/detail/normalize.hpp>
 #include <boost/geometry/algorithms/not_implemented.hpp>
 
@@ -35,6 +34,7 @@
 #include <boost/geometry/geometries/concepts/check.hpp>
 
 #include <boost/geometry/util/math.hpp>
+#include <boost/geometry/util/numeric_cast.hpp>
 #include <boost/geometry/util/range.hpp>
 
 #include <boost/geometry/views/detail/closed_clockwise_view.hpp>
@@ -77,7 +77,7 @@ struct collected_vector_cartesian
 
     bool normalize()
     {
-        T magnitude = math::sqrt(boost::numeric_cast<T>(dx * dx + dy * dy));
+        T magnitude = math::sqrt(util::numeric_cast<T>(dx * dx + dy * dy));
 
         // NOTE: shouldn't here math::equals() be called?
         if (magnitude > 0)
@@ -334,7 +334,7 @@ private:
 
 
 // Default version (cartesian)
-template <typename Box, typename Collection, typename CSTag = typename cs_tag<Box>::type>
+template <typename Box, typename Collection, typename CSTag = cs_tag_t<Box>>
 struct box_collect_vectors
 {
     // Calculate on coordinate type, but if it is integer,
@@ -344,7 +344,7 @@ struct box_collect_vectors
 
     static inline void apply(Collection& collection, Box const& box)
     {
-        typename point_type<Box>::type lower_left, lower_right,
+        point_type_t<Box> lower_left, lower_right,
             upper_left, upper_right;
         geometry::detail::assign_box_corners(box, lower_left, lower_right,
             upper_left, upper_right);
@@ -365,7 +365,7 @@ struct box_collect_vectors<Box, Collection, spherical_equatorial_tag>
 {
     static inline void apply(Collection& collection, Box const& box)
     {
-        typename point_type<Box>::type lower_left, lower_right,
+        point_type_t<Box> lower_left, lower_right,
                 upper_left, upper_right;
         geometry::detail::assign_box_corners(box, lower_left, lower_right,
                 upper_left, upper_right);
@@ -400,10 +400,8 @@ struct polygon_collect_vectors
         typedef range_collect_vectors<ring_type, Collection> per_range;
         per_range::apply(collection, exterior_ring(polygon));
 
-        typename interior_return_type<Polygon const>::type
-            rings = interior_rings(polygon);
-        for (typename detail::interior_iterator<Polygon const>::type
-                it = boost::begin(rings); it != boost::end(rings); ++it)
+        auto const& rings = interior_rings(polygon);
+        for (auto it = boost::begin(rings); it != boost::end(rings); ++it)
         {
             per_range::apply(collection, *it);
         }
@@ -416,10 +414,7 @@ struct multi_collect_vectors
 {
     static inline void apply(Collection& collection, MultiGeometry const& multi)
     {
-        for (typename boost::range_iterator<MultiGeometry const>::type
-                it = boost::begin(multi);
-            it != boost::end(multi);
-            ++it)
+        for (auto it = boost::begin(multi); it != boost::end(multi); ++it)
         {
             SinglePolicy::apply(collection, *it);
         }

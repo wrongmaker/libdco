@@ -15,7 +15,7 @@
 #include <boost/url/grammar/error.hpp>
 #include <boost/url/grammar/detail/tuple.hpp>
 #include <boost/mp11/algorithm.hpp>
-#include <boost/url/detail/empty_value.hpp>
+#include <boost/core/empty_value.hpp>
 #include <tuple>
 
 namespace boost {
@@ -42,13 +42,13 @@ namespace grammar {
     except that `void` values are removed.
     However, if there is exactly one non-void
     value type `T`, then the sequence rule
-    returns `result<T>` instead of
-    `result<tuple<...>>`.
+    returns `system::result<T>` instead of
+    `system::result<tuple<...>>`.
 
     @par Example
     Rules are used with the function @ref parse.
     @code
-    result< std::tuple< unsigned char, unsigned char, unsigned char, unsigned char > > rv =
+    system::result< std::tuple< unsigned char, unsigned char, unsigned char, unsigned char > > rv =
         parse( "192.168.0.1", 
             tuple_rule(
                 dec_octet_rule,
@@ -83,11 +83,12 @@ constexpr
 __implementation_defined__
 tuple_rule( Rules... rn ) noexcept;
 #else
+namespace implementation_defined {
 template<
     class R0,
     class... Rn>
 class tuple_rule_t
-    : urls::detail::empty_value<
+    : empty_value<
         detail::tuple<R0, Rn...>>
 {
     using T = mp11::mp_remove<
@@ -103,35 +104,80 @@ public:
         mp11::mp_eval_if_c<IsList,
             T, mp11::mp_first, T>;
 
-    template<
-        class R0_,
-        class... Rn_>
-    friend
-    constexpr
-    auto
-    tuple_rule(
-        R0_ const& r0,
-        Rn_ const&... rn) noexcept ->
-            tuple_rule_t<R0_, Rn_...>;
-
-    result<value_type>
-    parse(
-        char const*& it,
-        char const* end) const;
-
-private:
     constexpr
     tuple_rule_t(
         R0 const& r0,
         Rn const&... rn) noexcept
-        : urls::detail::empty_value<
+        : empty_value<
             detail::tuple<R0, Rn...>>(
-                urls::detail::empty_init,
+                empty_init,
                 r0, rn...)
     {
     }
-};
 
+    system::result<value_type>
+    parse(
+        char const*& it,
+        char const* end) const;
+
+};
+} // implementation_defined
+
+/** Match a series of rules in order
+
+    This matches a series of rules in the
+    order specified. Upon success the input
+    is adjusted to point to the first
+    unconsumed character. There is no
+    implicit specification of linear white
+    space between each rule.
+
+    @par Value Type
+    @code
+    using value_type = __see_below__;
+    @endcode
+
+    The sequence rule usually returns a
+    `std::tuple` containing the the `value_type`
+    of each corresponding rule in the sequence,
+    except that `void` values are removed.
+    However, if there is exactly one non-void
+    value type `T`, then the sequence rule
+    returns `system::result<T>` instead of
+    `system::result<tuple<...>>`.
+
+    @par Example
+    Rules are used with the function @ref parse.
+    @code
+    system::result< std::tuple< unsigned char, unsigned char, unsigned char, unsigned char > > rv =
+        parse( "192.168.0.1",
+            tuple_rule(
+                dec_octet_rule,
+                squelch( delim_rule('.') ),
+                dec_octet_rule,
+                squelch( delim_rule('.') ),
+                dec_octet_rule,
+                squelch( delim_rule('.') ),
+                dec_octet_rule ) );
+    @endcode
+
+    @par BNF
+    @code
+    sequence     = rule1 rule2 rule3...
+    @endcode
+
+    @par Specification
+    @li <a href="https://datatracker.ietf.org/doc/html/rfc5234#section-3.1"
+        >3.1.  Concatenation (rfc5234)</a>
+
+    @param rn A list of one or more rules to match
+
+    @see
+        @ref dec_octet_rule,
+        @ref delim_rule,
+        @ref parse,
+        @ref squelch.
+*/
 template<
     class R0,
     class... Rn>
@@ -140,7 +186,7 @@ auto
 tuple_rule(
     R0 const& r0,
     Rn const&... rn) noexcept ->
-        tuple_rule_t<
+        implementation_defined::tuple_rule_t<
             R0, Rn...>
 {
     return { r0, rn... };
@@ -148,23 +194,23 @@ tuple_rule(
 #endif
 
 #ifndef BOOST_URL_DOCS
-namespace detail {
+namespace implementation_defined {
 
 template<class Rule>
 struct squelch_rule_t
-    : urls::detail::empty_value<Rule>
+    : empty_value<Rule>
 {
     using value_type = void;
 
     constexpr
     squelch_rule_t(
         Rule const& r) noexcept
-        : urls::detail::empty_value<Rule>(
-            urls::detail::empty_init, r)
+        : empty_value<Rule>(
+            empty_init, r)
     {
     }
 
-    result<value_type>
+    system::result<value_type>
     parse(
         char const*& it,
         char const* end) const
@@ -176,7 +222,7 @@ struct squelch_rule_t
     }
 };
 
-} // detail
+} // implementation_defined
 #endif
 
 /** Squelch the value of a rule
@@ -196,7 +242,7 @@ struct squelch_rule_t
     @par Example 1
     With `squelch`:
     @code
-    result< std::tuple< decode_view, string_view > > rv = parse(
+    system::result< std::tuple< decode_view, core::string_view > > rv = parse(
         "www.example.com:443",
         tuple_rule(
             pct_encoded_rule(unreserved_chars + '-' + '.'),
@@ -207,7 +253,7 @@ struct squelch_rule_t
     @par Example 2
     Without `squelch`:
     @code
-    result< std::tuple< decode_view, string_view, string_view > > rv = parse(
+    system::result< std::tuple< decode_view, core::string_view, core::string_view > > rv = parse(
         "www.example.com:443",
         tuple_rule(
             pct_encoded_rule(unreserved_chars + '-' + '.'),
@@ -229,11 +275,7 @@ struct squelch_rule_t
 */
 template<class Rule>
 constexpr
-#ifdef BOOST_URL_DOCS
-__implementation_defined__
-#else
-detail::squelch_rule_t<Rule>
-#endif
+BOOST_URL_IMPLEMENTATION_DEFINED(implementation_defined::squelch_rule_t<Rule>)
 squelch( Rule const& r ) noexcept
 {
     return { r };

@@ -389,7 +389,7 @@ struct output_geometry_access<TupledOut, Tag, DefaultTag, void>
         >::value;
 
     typedef typename geometry::tuples::element<index, TupledOut>::type type;
-    
+
     template <typename Tuple>
     static typename geometry::tuples::element<index, Tuple>::type&
         get(Tuple & tup)
@@ -520,10 +520,10 @@ struct expect_output_assert
                     TupledOut,
                     is_tag_same_as_pred<Tag>::template pred
                 >::value,
-            typename geometry::tag_cast
+            tag_cast_t
                 <
                     Tag, pointlike_tag, linear_tag, areal_tag
-                >::type
+                >
         >
 {};
 
@@ -539,29 +539,6 @@ template
 struct expect_output
     : expect_output_assert<Geometry1, Geometry2, TupledOut, Tags>...
 {};
-
-
-template <typename CastedTag>
-struct single_tag_from_base_tag;
-
-template <>
-struct single_tag_from_base_tag<pointlike_tag>
-{
-    typedef point_tag type;
-};
-
-template <>
-struct single_tag_from_base_tag<linear_tag>
-{
-    typedef linestring_tag type;
-};
-
-template <>
-struct single_tag_from_base_tag<areal_tag>
-{
-    typedef polygon_tag type;
-};
-
 
 template
 <
@@ -593,8 +570,7 @@ struct convert_to_output<Geometry, SingleOut, true>
     static OutputIterator apply(Geometry const& geometry,
                                 OutputIterator oit)
     {
-        typedef typename boost::range_iterator<Geometry const>::type iterator;
-        for (iterator it = boost::begin(geometry); it != boost::end(geometry); ++it)
+        for (auto it = boost::begin(geometry); it != boost::end(geometry); ++it)
         {
             SingleOut single_out;
             geometry::convert(*it, single_out);

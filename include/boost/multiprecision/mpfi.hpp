@@ -35,15 +35,6 @@
 
 namespace boost {
 namespace multiprecision {
-namespace backends {
-
-template <unsigned digits10>
-struct mpfi_float_backend;
-
-template <class Backend>
-struct debug_adaptor;
-
-} // namespace backends
 
 template <unsigned digits10>
 struct number_category<backends::mpfi_float_backend<digits10> > : public std::integral_constant<int, number_kind_floating_point>
@@ -1377,14 +1368,6 @@ template <unsigned Digits10>
 struct is_interval_number<backends::mpfi_float_backend<Digits10> > : public std::integral_constant<bool, true>
 {};
 
-using boost::multiprecision::backends::mpfi_float_backend;
-
-using mpfi_float_50 = number<mpfi_float_backend<50> >  ;
-using mpfi_float_100 = number<mpfi_float_backend<100> > ;
-using mpfi_float_500 = number<mpfi_float_backend<500> > ;
-using mpfi_float_1000 = number<mpfi_float_backend<1000> >;
-using mpfi_float = number<mpfi_float_backend<0> >   ;
-
 //
 // Special interval specific functions:
 //
@@ -2389,8 +2372,15 @@ class numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfi_f
    static constexpr bool has_infinity                  = true;
    static constexpr bool has_quiet_NaN                 = true;
    static constexpr bool has_signaling_NaN             = false;
-   static constexpr float_denorm_style has_denorm      = denorm_absent;
-   static constexpr bool               has_denorm_loss = false;
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#endif
+   static constexpr float_denorm_style       has_denorm      = denorm_absent;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+   static constexpr bool has_denorm_loss = false;
    static number_type                        infinity()
    {
       static number_type value{get_infinity()};
@@ -2405,7 +2395,7 @@ class numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfi_f
    {
       return number_type(0);
    }
-   static constexpr number_type denorm_min() { return number_type(0); }
+   static constexpr number_type denorm_min() { return (min)(); }
    static constexpr bool        is_iec559         = false;
    static constexpr bool        is_bounded        = true;
    static constexpr bool        is_modulo         = false;
@@ -2442,8 +2432,15 @@ template <unsigned Digits10, boost::multiprecision::expression_template_option E
 constexpr bool numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfi_float_backend<Digits10>, ExpressionTemplates> >::has_quiet_NaN;
 template <unsigned Digits10, boost::multiprecision::expression_template_option ExpressionTemplates>
 constexpr bool numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfi_float_backend<Digits10>, ExpressionTemplates> >::has_signaling_NaN;
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#endif
 template <unsigned Digits10, boost::multiprecision::expression_template_option ExpressionTemplates>
 constexpr float_denorm_style numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfi_float_backend<Digits10>, ExpressionTemplates> >::has_denorm;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 template <unsigned Digits10, boost::multiprecision::expression_template_option ExpressionTemplates>
 constexpr bool numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfi_float_backend<Digits10>, ExpressionTemplates> >::has_denorm_loss;
 template <unsigned Digits10, boost::multiprecision::expression_template_option ExpressionTemplates>
@@ -2485,8 +2482,15 @@ class numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfi_f
    static constexpr bool has_infinity                  = false;
    static constexpr bool has_quiet_NaN                 = false;
    static constexpr bool has_signaling_NaN             = false;
-   static constexpr float_denorm_style has_denorm      = denorm_absent;
-   static constexpr bool               has_denorm_loss = false;
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#endif
+   static constexpr float_denorm_style       has_denorm      = denorm_absent;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+   static constexpr bool                     has_denorm_loss = false;
    static number_type                        infinity() { return number_type(0); }
    static number_type                        quiet_NaN() { return number_type(0); }
    static number_type                        signaling_NaN() { return number_type(0); }
@@ -2527,8 +2531,15 @@ template <boost::multiprecision::expression_template_option ExpressionTemplates>
 constexpr bool numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfi_float_backend<0>, ExpressionTemplates> >::has_quiet_NaN;
 template <boost::multiprecision::expression_template_option ExpressionTemplates>
 constexpr bool numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfi_float_backend<0>, ExpressionTemplates> >::has_signaling_NaN;
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#endif
 template <boost::multiprecision::expression_template_option ExpressionTemplates>
 constexpr float_denorm_style numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfi_float_backend<0>, ExpressionTemplates> >::has_denorm;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 template <boost::multiprecision::expression_template_option ExpressionTemplates>
 constexpr bool numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfi_float_backend<0>, ExpressionTemplates> >::has_denorm_loss;
 template <boost::multiprecision::expression_template_option ExpressionTemplates>

@@ -11,7 +11,7 @@
 #define BOOST_URL_DECODE_VIEW_HPP
 
 #include <boost/url/detail/config.hpp>
-#include <boost/url/string_view.hpp>
+#include <boost/core/detail/string_view.hpp>
 #include <boost/url/encoding_opts.hpp>
 #include <boost/url/pct_string_view.hpp>
 #include <type_traits>
@@ -72,7 +72,7 @@ make_decode_view(
     @par Operators
     The following operators are supported between
     @ref decode_view and any object that is convertible
-    to @ref string_view
+    to `core::string_view`
 
     @code
     bool operator==( decode_view, decode_view ) noexcept;
@@ -103,7 +103,7 @@ class decode_view
     BOOST_URL_DECL
     explicit
     decode_view(
-        string_view s,
+        core::string_view s,
         std::size_t n,
         encoding_opts opt) noexcept;
 
@@ -136,8 +136,17 @@ public:
         dereferenced.
     */
 #ifdef BOOST_URL_DOCS
-    using iterator = __see_below__;
+    using iterator = __see_below__
 #else
+
+    /** An iterator of constant, decoded characters.
+
+        This iterator is used to access the encoded
+        string as a bidirectional range of characters
+        with percent-decoding applied. Escape sequences
+        are not decoded until the iterator is
+        dereferenced.
+    */
     class iterator;
 #endif
 
@@ -206,13 +215,12 @@ public:
         this parameter is omitted, the default
         options are used.
     */
-    BOOST_URL_DECL
     explicit
     decode_view(
         pct_string_view s,
         encoding_opts opt = {}) noexcept
         : decode_view(
-            string_view(s),
+            detail::to_sv(s),
             s.decoded_size(),
             opt)
     {
@@ -341,6 +349,140 @@ public:
     reference
     back() const noexcept;
 
+    /** Checks if the string begins with the given prefix
+
+        @par Example
+        @code
+        assert( decode_view( "Program%20Files" ).starts_with("Program") );
+        @endcode
+
+        @par Complexity
+        Linear.
+
+        @par Exception Safety
+        Throws nothing.
+    */
+    BOOST_URL_DECL
+    bool
+    starts_with( core::string_view s ) const noexcept;
+
+    /** Checks if the string ends with the given prefix
+
+        @par Example
+        @code
+        assert( decode_view( "Program%20Files" ).ends_with("Files") );
+        @endcode
+
+        @par Complexity
+        Linear.
+
+        @par Exception Safety
+        Throws nothing.
+    */
+    BOOST_URL_DECL
+    bool
+    ends_with( core::string_view s ) const noexcept;
+
+    /** Checks if the string begins with the given prefix
+
+        @par Example
+        @code
+        assert( decode_view( "Program%20Files" ).starts_with('P') );
+        @endcode
+
+        @par Complexity
+        Constant.
+
+        @par Exception Safety
+        Throws nothing.
+    */
+    BOOST_URL_DECL
+    bool
+    starts_with( char ch ) const noexcept;
+
+    /** Checks if the string ends with the given prefix
+
+        @par Example
+        @code
+        assert( decode_view( "Program%20Files" ).ends_with('s') );
+        @endcode
+
+        @par Complexity
+        Constant.
+
+        @par Exception Safety
+        Throws nothing.
+    */
+    BOOST_URL_DECL
+    bool
+    ends_with( char ch ) const noexcept;
+
+    /** Finds the first occurrence of character in this view
+
+        @par Complexity
+        Linear.
+
+        @par Exception Safety
+        Throws nothing.
+    */
+    BOOST_URL_DECL
+    const_iterator
+    find( char ch ) const noexcept;
+
+    /** Finds the first occurrence of character in this view
+
+        @par Complexity
+        Linear.
+
+        @par Exception Safety
+        Throws nothing.
+    */
+    BOOST_URL_DECL
+    const_iterator
+    rfind( char ch ) const noexcept;
+
+    /** Remove the first characters
+
+        @par Example
+        @code
+        decode_view d( "Program%20Files" );
+        d.remove_prefix( 8 );
+        assert( d == "Files" );
+        @endcode
+
+        @par Preconditions
+        @code
+        not this->empty()
+        @endcode
+
+        @par Complexity
+        Linear.
+    */
+    BOOST_URL_DECL
+    void
+    remove_prefix( size_type n );
+
+    /** Remove the last characters
+
+        @par Example
+        @code
+        decode_view d( "Program%20Files" );
+        d.remove_prefix( 6 );
+        assert( d == "Program" );
+        @endcode
+
+        @par Preconditions
+        @code
+        not this->empty()
+        @endcode
+
+        @par Complexity
+        Linear.
+    */
+    BOOST_URL_DECL
+    void
+    remove_suffix( size_type n );
+
     /** Return the decoding options
     */
     encoding_opts
@@ -376,7 +518,7 @@ public:
     */
     BOOST_URL_DECL
     int
-    compare(string_view other) const noexcept;
+    compare(core::string_view other) const noexcept;
 
     /** Return the result of comparing to another string
 
@@ -406,17 +548,17 @@ public:
 private:
     template<class S0, class S1>
     using is_match = std::integral_constant<bool,
-        // both decode_view or convertible to string_view
+        // both decode_view or convertible to core::string_view
         (
             std::is_same<typename std::decay<S0>::type, decode_view>::value ||
-            std::is_convertible<S0, string_view>::value) &&
+            std::is_convertible<S0, core::string_view>::value) &&
         (
             std::is_same<typename std::decay<S1>::type, decode_view>::value ||
-            std::is_convertible<S1, string_view>::value) &&
+            std::is_convertible<S1, core::string_view>::value) &&
         // not both are convertible to string view
         (
-            !std::is_convertible<S0, string_view>::value ||
-            !std::is_convertible<S1, string_view>::value)>;
+            !std::is_convertible<S0, core::string_view>::value ||
+            !std::is_convertible<S1, core::string_view>::value)>;
 
     static
     int
@@ -442,6 +584,12 @@ private:
     }
 public:
 
+    /// Compare two decode views for equality
+    /**
+     * This function is only enabled if both types are
+     * decode_view or convertible to `core::string_view`,
+     * but not both are convertible to `core::string_view`
+     */
     template<class S0, class S1>
     BOOST_CXX14_CONSTEXPR friend auto operator==(
         S0 const& s0, S1 const& s1) noexcept ->
@@ -451,6 +599,12 @@ public:
         return decode_compare(s0, s1) == 0;
     }
 
+    /// Compare two decode views for inequality
+    /**
+     * This function is only enabled if both types are
+     * decode_view or convertible to `core::string_view`,
+     * but not both are convertible to `core::string_view`
+     */
     template<class S0, class S1>
     BOOST_CXX14_CONSTEXPR friend auto operator!=(
         S0 const& s0, S1 const& s1) noexcept ->
@@ -460,6 +614,12 @@ public:
         return decode_compare(s0, s1) != 0;
     }
 
+    /// Compare two decode views for less than
+    /**
+     * This function is only enabled if both types are
+     * decode_view or convertible to `core::string_view`,
+     * but not both are convertible to `core::string_view`
+     */
     template<class S0, class S1>
     BOOST_CXX14_CONSTEXPR friend auto operator<(
         S0 const& s0, S1 const& s1) noexcept ->
@@ -469,6 +629,12 @@ public:
         return decode_compare(s0, s1) < 0;
     }
 
+    /// Compare two decode views for less than or equal
+    /**
+     * This function is only enabled if both types are
+     * decode_view or convertible to `core::string_view`,
+     * but not both are convertible to `core::string_view`
+     */
     template<class S0, class S1>
     BOOST_CXX14_CONSTEXPR friend auto operator<=(
         S0 const& s0, S1 const& s1) noexcept ->
@@ -478,6 +644,12 @@ public:
         return decode_compare(s0, s1) <= 0;
     }
 
+    /// Compare two decode views for greater than
+    /**
+     * This function is only enabled if both types are
+     * decode_view or convertible to `core::string_view`,
+     * but not both are convertible to `core::string_view`
+     */
     template<class S0, class S1>
     BOOST_CXX14_CONSTEXPR friend auto operator>(
         S0 const& s0, S1 const& s1) noexcept ->
@@ -487,6 +659,12 @@ public:
         return decode_compare(s0, s1) > 0;
     }
 
+    /// Compare two decode views for greater than or equal
+    /**
+     * This function is only enabled if both types are
+     * decode_view or convertible to `core::string_view`,
+     * but not both are convertible to `core::string_view`
+     */
     template<class S0, class S1>
     BOOST_CXX14_CONSTEXPR friend auto operator>=(
         S0 const& s0, S1 const& s1) noexcept ->
@@ -497,7 +675,17 @@ public:
     }
 #endif
 
-    // hidden friend
+    /** Format the string with percent-decoding applied to the output stream
+
+        This hidden friend function serializes the decoded view
+        to the output stream.
+
+        @return A reference to the output stream, for chaining
+
+        @param os The output stream to write to
+
+        @param s The decoded view to write
+    */
     friend
     std::ostream&
     operator<<(

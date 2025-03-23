@@ -68,8 +68,9 @@ struct stream<NextLayer, deflateSupported>::impl_type
             impl_type>(this->detail::service::
                 impl_type::shared_from_this());
     }
-
-    net::steady_timer       timer;          // used for timeouts
+    using executor_type = typename std::decay<NextLayer>::type::executor_type;
+    typename net::steady_timer::rebind_executor<executor_type>::other
+                            timer;          // used for timeouts
     close_reason            cr;             // set from received close frame
     control_cb_type         ctrl_cb;        // control callback
 
@@ -299,7 +300,7 @@ struct stream<NextLayer, deflateSupported>::impl_type
         if(initial_size == 0)
             return 1; // buffer is full
         return this->read_size_hint_pmd(
-            initial_size, rd_done, rd_remain, rd_fh);
+            initial_size, rd_done, rd_msg_max, rd_remain, rd_fh);
     }
 
     template<class DynamicBuffer>
@@ -631,7 +632,7 @@ build_request(
     req.method(http::verb::get);
     req.set(http::field::host, host);
     req.set(http::field::upgrade, "websocket");
-    req.set(http::field::connection, "upgrade");
+    req.set(http::field::connection, "Upgrade");
     detail::make_sec_ws_key(key);
     req.set(http::field::sec_websocket_key, to_string_view(key));
     req.set(http::field::sec_websocket_version, "13");
@@ -885,6 +886,9 @@ parse_fh(
                 return false;
             }
         }
+        // The final size of a deflated frame is unknown. In certain cases,
+        // post-inflation, it might shrink and become <= rd_msg_max.
+        // Therefore, we will verify the size during the inflation process.
         if(! this->rd_deflated())
         {
             if(rd_msg_max && beast::detail::sum_exceeds(

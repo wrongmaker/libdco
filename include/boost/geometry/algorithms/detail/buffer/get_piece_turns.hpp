@@ -3,8 +3,9 @@
 // Copyright (c) 2012-2014 Barend Gehrels, Amsterdam, the Netherlands.
 // Copyright (c) 2017 Adam Wulkiewicz, Lodz, Poland.
 
-// This file was modified by Oracle on 2017-2020.
-// Modifications copyright (c) 2017-2020 Oracle and/or its affiliates.
+// This file was modified by Oracle on 2017-2024.
+// Modifications copyright (c) 2017-2024 Oracle and/or its affiliates.
+// Contributed and/or modified by Vissarion Fysikopoulos, on behalf of Oracle
 // Contributed and/or modified by Adam Wulkiewicz, on behalf of Oracle
 
 // Use, modification and distribution is subject to the Boost Software License,
@@ -117,8 +118,7 @@ template
     typename Pieces,
     typename Rings,
     typename Turns,
-    typename Strategy,
-    typename RobustPolicy
+    typename Strategy
 >
 class piece_turn_visitor
 {
@@ -126,7 +126,6 @@ class piece_turn_visitor
     Rings const& m_rings;
     Turns& m_turns;
     Strategy const& m_strategy;
-    RobustPolicy const& m_robust_policy;
 
     template <typename Piece>
     inline bool is_adjacent(Piece const& piece1, Piece const& piece2) const
@@ -161,8 +160,7 @@ class piece_turn_visitor
                 && it_begin + 1 != it_beyond
                 && detail::section::preceding<Dimension>(dir, *(it_begin + 1),
                                                          this_bounding_box,
-                                                         other_bounding_box,
-                                                         m_robust_policy);
+                                                         other_bounding_box);
             ++it_begin, index++)
         {}
     }
@@ -177,7 +175,7 @@ class piece_turn_visitor
             && it_beyond - 2 != it_begin)
         {
             if (detail::section::exceeding<Dimension>(dir, *(it_beyond - 2),
-                        this_bounding_box, other_bounding_box, m_robust_policy))
+                        this_bounding_box, other_bounding_box))
             {
                 --it_beyond;
             }
@@ -194,7 +192,6 @@ class piece_turn_visitor
     {
         typedef typename boost::range_value<Rings const>::type ring_type;
         typedef typename boost::range_value<Turns const>::type turn_type;
-        typedef typename boost::range_iterator<ring_type const>::type iterator;
 
         signed_size_type const piece1_first_index = piece1.first_seg_id.segment_index;
         signed_size_type const piece2_first_index = piece2.first_seg_id.segment_index;
@@ -213,12 +210,12 @@ class piece_turn_visitor
 
         // get geometry and iterators over these sections
         ring_type const& ring1 = m_rings[piece1.first_seg_id.multi_index];
-        iterator it1_first = boost::begin(ring1) + sec1_first_index;
-        iterator it1_beyond = boost::begin(ring1) + sec1_last_index + 1;
+        auto it1_first = boost::begin(ring1) + sec1_first_index;
+        auto it1_beyond = boost::begin(ring1) + sec1_last_index + 1;
 
         ring_type const& ring2 = m_rings[piece2.first_seg_id.multi_index];
-        iterator it2_first = boost::begin(ring2) + sec2_first_index;
-        iterator it2_beyond = boost::begin(ring2) + sec2_last_index + 1;
+        auto it2_first = boost::begin(ring2) + sec2_first_index;
+        auto it2_beyond = boost::begin(ring2) + sec2_last_index + 1;
 
         // Set begin/end of monotonic ranges, in both x/y directions
         signed_size_type index1 = sec1_first_index;
@@ -246,8 +243,8 @@ class piece_turn_visitor
         the_model.operations[0].seg_id = piece1.first_seg_id;
         the_model.operations[0].seg_id.segment_index = index1; // override
 
-        iterator it1 = it1_first;
-        for (iterator prev1 = it1++;
+        auto it1 = it1_first;
+        for (auto prev1 = it1++;
                 it1 != it1_beyond;
                 prev1 = it1++, the_model.operations[0].seg_id.segment_index++)
         {
@@ -257,8 +254,8 @@ class piece_turn_visitor
 
             unique_sub_range_from_piece<ring_type> unique_sub_range1(ring1, prev1, it1);
 
-            iterator it2 = it2_first;
-            for (iterator prev2 = it2++;
+            auto it2 = it2_first;
+            for (auto prev2 = it2++;
                     it2 != it2_beyond;
                     prev2 = it2++, the_model.operations[1].seg_id.segment_index++)
             {
@@ -272,7 +269,6 @@ class piece_turn_visitor
                 turn_policy::apply(unique_sub_range1, unique_sub_range2,
                                    the_model,
                                    m_strategy,
-                                   m_robust_policy,
                                    std::back_inserter(m_turns));
             }
         }
@@ -283,13 +279,11 @@ public:
     piece_turn_visitor(Pieces const& pieces,
             Rings const& ring_collection,
             Turns& turns,
-            Strategy const& strategy,
-            RobustPolicy const& robust_policy)
+            Strategy const& strategy)
         : m_pieces(pieces)
         , m_rings(ring_collection)
         , m_turns(turns)
         , m_strategy(strategy)
-        , m_robust_policy(robust_policy)
     {}
 
     template <typename Section>

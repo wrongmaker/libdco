@@ -58,7 +58,6 @@
 #include <boost/geometry/strategies/cartesian/distance_pythagoras_point_box.hpp>
 #include <boost/geometry/strategies/cartesian/distance_pythagoras_box_box.hpp>
 #include <boost/geometry/strategies/cartesian/distance_projected_point.hpp>
-#include <boost/geometry/strategies/cartesian/distance_projected_point_ax.hpp>
 #include <boost/geometry/strategies/cartesian/distance_segment_box.hpp>
 #include <boost/geometry/strategies/cartesian/intersection.hpp>
 #include <boost/geometry/strategies/cartesian/point_in_box.hpp>
@@ -84,7 +83,11 @@
 #include <boost/geometry/strategies/spherical/ssf.hpp>
 
 #include <boost/geometry/strategies/geographic/azimuth.hpp>
+#include <boost/geometry/strategies/geographic/buffer_end_round.hpp>
+#include <boost/geometry/strategies/geographic/buffer_join_miter.hpp>
+#include <boost/geometry/strategies/geographic/buffer_join_round.hpp>
 #include <boost/geometry/strategies/geographic/buffer_point_circle.hpp>
+#include <boost/geometry/strategies/geographic/buffer_side_straight.hpp>
 #include <boost/geometry/strategies/geographic/densify.hpp>
 #include <boost/geometry/strategies/geographic/disjoint_segment_box.hpp>
 #include <boost/geometry/strategies/geographic/distance.hpp>

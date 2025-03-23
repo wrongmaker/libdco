@@ -3,10 +3,11 @@
 // Copyright (c) 2007-2012 Barend Gehrels, Amsterdam, the Netherlands.
 // Copyright (c) 2008-2012 Bruno Lalande, Paris, France.
 // Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
-// Copyright (c) 2014-2017 Adam Wulkiewicz, Lodz, Poland.
+// Copyright (c) 2014-2024 Adam Wulkiewicz, Lodz, Poland.
 
-// This file was modified by Oracle on 2017-2021.
-// Modifications copyright (c) 2017-2021 Oracle and/or its affiliates.
+// This file was modified by Oracle on 2017-2023.
+// Modifications copyright (c) 2017-2023 Oracle and/or its affiliates.
+// Contributed and/or modified by Vissarion Fysikopoulos, on behalf of Oracle
 // Contributed and/or modified by Adam Wulkiewicz, on behalf of Oracle
 
 // Parts of Boost.Geometry are redesigned from Geodan's Geographic Library
@@ -21,25 +22,18 @@
 
 
 #include <algorithm>
-#include <cstddef>
 #include <functional>
 
 #include <boost/range/begin.hpp>
 #include <boost/range/end.hpp>
-#include <boost/range/value_type.hpp>
 
 #include <boost/geometry/algorithms/area.hpp>
 #include <boost/geometry/algorithms/correct_closure.hpp>
-#include <boost/geometry/algorithms/detail/interior_iterator.hpp>
 #include <boost/geometry/algorithms/detail/multi_modify.hpp>
 #include <boost/geometry/algorithms/detail/visit.hpp>
 
-#include <boost/geometry/core/closure.hpp>
-#include <boost/geometry/core/cs.hpp>
 #include <boost/geometry/core/exterior_ring.hpp>
 #include <boost/geometry/core/interior_rings.hpp>
-#include <boost/geometry/core/mutable_range.hpp>
-#include <boost/geometry/core/ring_type.hpp>
 #include <boost/geometry/core/tags.hpp>
 #include <boost/geometry/core/visit.hpp>
 
@@ -81,8 +75,6 @@ struct correct_box
     template <typename Box, typename Strategy>
     static inline void apply(Box& box, Strategy const& )
     {
-        using coordinate_type = typename geometry::coordinate_type<Box>::type;
-
         // Currently only for Cartesian coordinates
         // (or spherical without crossing dateline)
         // Future version: adapt using strategies
@@ -91,8 +83,8 @@ struct correct_box
             if (get<min_corner, dimension>(box) > get<max_corner, dimension>(box))
             {
                 // Swap the coordinates
-                coordinate_type max_value = get<min_corner, dimension>(box);
-                coordinate_type min_value = get<max_corner, dimension>(box);
+                auto max_value = get<min_corner, dimension>(box);
+                auto min_value = get<max_corner, dimension>(box);
                 set<min_corner, dimension>(box, min_value);
                 set<max_corner, dimension>(box, max_value);
             }
@@ -150,7 +142,7 @@ struct correct_polygon
 namespace dispatch
 {
 
-template <typename Geometry, typename Tag = typename tag<Geometry>::type>
+template <typename Geometry, typename Tag = tag_t<Geometry>>
 struct correct: not_implemented<Tag>
 {};
 
@@ -258,7 +250,7 @@ struct correct<default_strategy, false>
 namespace resolve_dynamic
 {
 
-template <typename Geometry, typename Tag = typename tag<Geometry>::type>
+template <typename Geometry, typename Tag = tag_t<Geometry>>
 struct correct
 {
     template <typename Strategy>
